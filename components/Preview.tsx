@@ -97,6 +97,38 @@ function toTitleCase(value: string) {
     .join(" ");
 }
 
+function inferIndustry(headline: string, keywords: string[], testimonials: string[]) {
+  const text = [headline, ...keywords, ...testimonials].join(" ").toLowerCase();
+
+  if (/(clinic|hospital|doctor|patient|health|medical|care)/.test(text)) {
+    return "healthcare";
+  }
+
+  if (/(suite|tailor|fashion|boutique|wedding|fabric)/.test(text)) {
+    return "fashion";
+  }
+
+  return "general";
+}
+
+function cleanKeywordForDisplay(value: string) {
+  const cleaned = value.replace(/\b(dr|mr|mrs|ms)\.?\s+/gi, "").trim();
+  if (!cleaned) return "";
+  if (/\d{2,}/.test(cleaned)) return "";
+  if (/^[A-Z][a-z]+\s[A-Z][a-z]+$/.test(cleaned)) return "";
+  return cleaned;
+}
+
+function cleanTestimonialForDisplay(value: string) {
+  return value
+    .replace(/\s*\.\.\.|\s*…/g, "")
+    .replace(/\bopd\s*\d+\b/gi, "")
+    .replace(/\bbed\s*number\s*\d+\b/gi, "")
+    .replace(/\b\d{3,}\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function Preview({ data }: Props) {
   const landing = data?.landing;
   const headline = landing?.headline?.trim() || "Your Offer, Reframed for Conversion";
@@ -121,9 +153,10 @@ export default function Preview({ data }: Props) {
     .map((t) => ({
       name:
         typeof t?.name === "string" && t.name.trim() ? t.name.trim() : "Anonymous",
-      review: typeof t?.review === "string" ? t.review.trim() : "",
+      review:
+        typeof t?.review === "string" ? cleanTestimonialForDisplay(t.review.trim()) : "",
     }))
-    .filter((t) => t.review.length > 0);
+    .filter((t) => t.review.length >= 20);
 
   const seed = [headline, subheadline, ...keywords.slice(0, 4), ...painPoints.slice(0, 2)]
     .join("|")
@@ -134,6 +167,11 @@ export default function Preview({ data }: Props) {
   const conversion = data?.scores?.conversion ?? 50;
   const clarity = data?.scores?.clarity ?? 50;
   const emotion = data?.scores?.emotion ?? 50;
+  const industry = inferIndustry(
+    headline,
+    keywords,
+    testimonials.map((t) => t.review),
+  );
 
   const computedLayout: LayoutStyle =
     painPoints.length > 0 ? "trust" : conversion >= 80 ? "offer" : "story";
@@ -145,8 +183,26 @@ export default function Preview({ data }: Props) {
     { label: "Emotional Pull", value: `${emotion}%` },
   ];
 
+  const careStandards = [
+    {
+      title: "Qualified Care Team",
+      detail: "Expert staff with attentive support across consultation and follow-up.",
+    },
+    {
+      title: "Clean & Safe Environment",
+      detail: "Patients consistently mention hygiene, professionalism, and comfort.",
+    },
+    {
+      title: "Smooth Coordination",
+      detail: "Fast communication and efficient process handling from front desk to care.",
+    },
+  ];
+
   const visibleBenefits = benefits.length > 0 ? benefits.slice(0, 6) : [];
-  const visibleKeywords = keywords.length > 0 ? keywords.slice(0, 5) : [];
+  const visibleKeywords = keywords
+    .map(cleanKeywordForDisplay)
+    .filter(Boolean)
+    .slice(0, 5);
   const visiblePainPoints = painPoints.length > 0 ? painPoints.slice(0, 3) : [];
 
   useEffect(() => {
@@ -280,14 +336,26 @@ export default function Preview({ data }: Props) {
         </section>
       )}
 
-      <section className="relative z-10 p-6 md:p-8 grid md:grid-cols-3 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className={`p-5 rounded-xl ${theme.card}`}>
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-300/80 mb-2">{stat.label}</p>
-            <p className="text-3xl font-black">{stat.value}</p>
-          </div>
-        ))}
-      </section>
+      {industry === "healthcare" ? (
+        <section className="relative z-10 p-6 md:p-8 grid md:grid-cols-3 gap-4">
+          {careStandards.map((item) => (
+            <div key={item.title} className={`p-5 rounded-xl ${theme.card}`}>
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-300/80 mb-2">Care Standard</p>
+              <p className="text-xl font-bold mb-2">{item.title}</p>
+              <p className="text-sm text-slate-300/80">{item.detail}</p>
+            </div>
+          ))}
+        </section>
+      ) : (
+        <section className="relative z-10 p-6 md:p-8 grid md:grid-cols-3 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className={`p-5 rounded-xl ${theme.card}`}>
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-300/80 mb-2">{stat.label}</p>
+              <p className="text-3xl font-black">{stat.value}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section id="benefits" className="relative z-10 px-6 md:px-8 pb-6">
         <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>Why Customers Choose This</h2>

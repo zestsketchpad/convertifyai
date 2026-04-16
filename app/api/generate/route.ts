@@ -314,7 +314,8 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
 
   const painPoints = toStringArray(obj.painPoints);
   let benefits = toStringArray(obj.benefits);
-  const keywords = toStringArray(obj.keywords);
+  const rawKeywords = toStringArray(obj.keywords);
+  const keywords = sanitizeKeywords(rawKeywords, reviews);
 
   const topProblem = typeof obj.topProblem === "string" ? obj.topProblem.trim() : "";
   const recommendation =
@@ -466,10 +467,54 @@ function normalizeTestimonial(value: unknown) {
     (typeof obj.text === "string" ? obj.text : "");
 
   const finalName = name.trim();
-  const finalReview = review.trim();
+  const finalReview = normalizeReviewText(review);
   if (!finalReview) return null;
 
   return { name: finalName || "Anonymous", review: finalReview };
+}
+
+function normalizeReviewText(value: string) {
+  return value
+    .replace(/\s*\.\.\.|\s*…/g, "")
+    .replace(/\bopd\s*\d+\b/gi, "")
+    .replace(/\bbed\s*number\s*\d+\b/gi, "")
+    .replace(/\b\d{3,}\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sanitizeKeywords(keywords: string[], reviews: string) {
+  const reviewText = reviews.toLowerCase();
+  const cleaned = keywords
+    .map((keyword) => keyword.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter((keyword) => keyword.length >= 3)
+    .filter((keyword) => !/\d{2,}/.test(keyword))
+    .filter((keyword) => !isLikelyPersonName(keyword))
+    .filter((keyword) => reviewText.includes(keyword.toLowerCase()));
+
+  return uniqueStrings(cleaned).slice(0, 8);
+}
+
+function isLikelyPersonName(value: string) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0 || words.length > 3) return false;
+
+  const allCapitalized = words.every((word) => /^[A-Z][a-z]+$/.test(word));
+  if (!allCapitalized) return false;
+
+  const nonNameKeywords = new Set([
+    "Apollo",
+    "Clinic",
+    "Hospital",
+    "Center",
+    "Service",
+    "Care",
+    "Health",
+  ]);
+
+  const matchesNonName = words.some((word) => nonNameKeywords.has(word));
+  return !matchesNonName;
 }
 
 function buildStrengthsRecommendation(
