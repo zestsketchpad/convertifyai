@@ -152,7 +152,7 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
   const obj = value as Record<string, unknown>;
 
   const painPoints = toStringArray(obj.painPoints);
-  const benefits = toStringArray(obj.benefits);
+  let benefits = toStringArray(obj.benefits);
   const keywords = toStringArray(obj.keywords);
 
   const topProblem = typeof obj.topProblem === "string" ? obj.topProblem.trim() : "";
@@ -164,7 +164,7 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
       ? (obj.scores as Record<string, unknown>)
       : {};
 
-  const scores = {
+  const modelScores = {
     conversion: toScore(scoresObj.conversion),
     clarity: toScore(scoresObj.clarity),
     emotion: toScore(scoresObj.emotion),
@@ -184,6 +184,8 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
     toStringArray(landingObj.benefits).length > 0
       ? toStringArray(landingObj.benefits)
       : toStringArray(obj.benefits);
+
+  if (benefits.length === 0) benefits = landingBenefits;
 
   const landing = {
     headline: toNonEmptyString(landingObj.headline, legacyHeadline),
@@ -206,9 +208,37 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
     ? topProblem || finalPainPoints[0] || FALLBACK_TOP_PROBLEM
     : FALLBACK_TOP_PROBLEM;
 
+  const sentiment = estimateSentiment(reviews, hasProblems);
+  const estimatedScores = estimateScores(sentiment);
+
+  const scores = {
+    conversion:
+      modelScores.conversion > 0 ? modelScores.conversion : estimatedScores.conversion,
+    clarity: modelScores.clarity > 0 ? modelScores.clarity : estimatedScores.clarity,
+    emotion: modelScores.emotion > 0 ? modelScores.emotion : estimatedScores.emotion,
+  };
+
+  const knownStrengths = uniqueStrings([
+    ...benefits.slice(0, 6),
+    ...landingBenefits.slice(0, 6),
+    ...keywords.slice(0, 6),
+  ]);
+
+  const hasUsableRecommendation =
+    recommendation && !isWeakRecommendation(recommendation, knownStrengths);
+
   const finalRecommendation = hasProblems
-    ? recommendation || `Fix the top issue: ${finalTopProblem}`
-    : recommendation || buildStrengthsRecommendation(benefits, landingBenefits, keywords);
+    ? hasUsableRecommendation
+      ? recommendation
+      : buildProblemRecommendation(
+          finalTopProblem,
+          benefits,
+          landingBenefits,
+          keywords,
+        )
+    : hasUsableRecommendation
+      ? recommendation
+      : buildStrengthsRecommendation(benefits, landingBenefits, keywords);
 
   return {
     painPoints: finalPainPoints,
@@ -270,10 +300,50 @@ function buildStrengthsRecommendation(
     ...benefits.slice(0, 4),
     ...landingBenefits.slice(0, 4),
     ...keywords.slice(0, 4),
-  ]).slice(0, 3);
+  ]).slice(0, 2);
 
-  if (strengths.length === 0) return "Emphasize strengths and trust signals.";
-  return `Highlight strengths and trust signals like ${strengths.join(", ")}.`;
+  if (strengths.length === 0) {
+    return "Lead with your strongest customer outcomes in the hero, then reinforce with real testimonials and a clear CTA.";
+  }
+
+  if (strengths.length === 1) {
+    return `Lead with ${strengths[0]} in your hero headline, then reinforce it with real testimonials and a clear CTA.`;
+  }
+
+  return `Lead with ${strengths[0]} and ${strengths[1]} in your hero headline and first benefit cards, then reinforce with real testimonials and a clear CTA.`;
+}
+
+function buildProblemRecommendation(
+  topProblem: string,
+  benefits: string[],
+  landingBenefits: string[],
+  keywords: string[],
+) {
+  const strengths = uniqueStrings([
+    ...benefits.slice(0, 4),
+    ...landingBenefits.slice(0, 4),
+    ...keywords.slice(0, 4),
+  ]).slice(0, 2);
+
+  const strengthsClause =
+    strengths.length > 0 ? ` while keeping ${strengths.join(" and ")} prominent` : "";
+
+  return `Address "${topProblem}" with a dedicated “How we fix it” section and clearer expectations${strengthsClause}, then end with a single, confident CTA.`;
+}
+
+function isWeakRecommendation(recommendation: string, strengths: string[]) {
+  const t = recommendation.trim().toLowerCase();
+  if (!t) return true;
+
+  if (t.includes("use concrete strengths")) return true;
+  if (t.includes("emphasize strengths")) return true;
+
+  if (t.includes("trust signals")) {
+    const mentionsStrength = strengths.some((s) => t.includes(s.toLowerCase()));
+    return !mentionsStrength;
+  }
+
+  return false;
 }
 
 function uniqueStrings(values: string[]) {
@@ -286,6 +356,25 @@ function uniqueStrings(values: string[]) {
     out.push(value);
   }
   return out;
+}
+
+type Sentiment = "positive" | "mixed" | "negative";
+
+function estimateSentiment(reviews: string, hasProblems: boolean): Sentiment {
+  const negative = containsNegativeSignal(reviews);
+  const positive = containsPositiveSignal(reviews);
+
+  if (negative && !positive) return "negative";
+  if (negative && positive) return "mixed";
+  if (hasProblems) return "mixed";
+  if (positive) return "positive";
+  return "mixed";
+}
+
+function estimateScores(sentiment: Sentiment) {
+  if (sentiment === "positive") return { conversion: 84, clarity: 90, emotion: 86 };
+  if (sentiment === "negative") return { conversion: 35, clarity: 55, emotion: 40 };
+  return { conversion: 65, clarity: 75, emotion: 65 };
 }
 
 function containsNegativeSignal(text: string) {
@@ -314,5 +403,30 @@ function containsNegativeSignal(text: string) {
     "rude",
     "disappointed",
     "waste",
+  ].some((needle) => t.includes(needle));
+}
+
+function containsPositiveSignal(text: string) {
+  const t = text.toLowerCase();
+  return [
+    "love",
+    "loved",
+    "great",
+    "amazing",
+    "excellent",
+    "awesome",
+    "helpful",
+    "kind",
+    "caring",
+    "empathetic",
+    "holistic",
+    "hope",
+    "trust",
+    "easy",
+    "fast",
+    "recommended",
+    "highly recommend",
+    "five-star",
+    "5-star",
   ].some((needle) => t.includes(needle));
 }

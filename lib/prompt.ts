@@ -9,11 +9,33 @@ IMPORTANT RULES:
 - If no clear problems exist, return:
   "painPoints": []
   "topProblem": "No major issues mentioned"
-  "recommendation": "Emphasize strengths and trust signals (use concrete strengths from the reviews)"
+  and a specific recommendation that reinforces real strengths from the reviews.
 
 - Benefits must reflect positive experiences explicitly mentioned by users.
+- Benefits must be short, clear phrases (2–5 words). Avoid single words and full sentences.
 - Ignore business/owner responses (e.g. "Response from the owner"); focus on the customer sentiment.
 - Be accurate and realistic.
+
+SCORING RULES:
+- Scores must NEVER be 0.
+- Base scores on sentiment:
+  - If mostly positive:
+    conversion: 75-90
+    clarity: 80-95
+    emotion: 70-90
+  - If mixed:
+    conversion: 50-75
+    clarity: 60-85
+    emotion: 50-80
+  - If negative:
+    conversion: 20-50
+    clarity: 40-70
+    emotion: 20-60
+
+RECOMMENDATION RULE:
+- Must be specific and actionable.
+- Must reference actual strengths or issues from the reviews.
+- Avoid generic phrases like "emphasize strengths" or "trust signals".
 
 Tone: ${tone}
 
