@@ -1,11 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import Insights from "@/components/Insights";
 import TopProblem from "@/components/TopProblem";
 import Scores from "@/components/Scores";
 import Preview from "@/components/Preview";
 import type { GeneratedPayload, GenerateApiErrorBody } from "@/lib/generated";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -13,6 +15,36 @@ export default function Home() {
   const [data, setData] = useState<GeneratedPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkUser = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+
+      if (!mounted) return;
+
+      if (!userData.user) {
+        router.replace("/login");
+        return;
+      }
+
+      setAuthReady(true);
+    };
+
+    checkUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  };
 
   const handleGenerate = async () => {
     if (!input.trim()) {
@@ -62,12 +94,29 @@ export default function Home() {
     }
   };
 
+  if (!authReady) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+        <p className="text-gray-300">Checking session...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center p-6 relative overflow-hidden">
       <div className="absolute w-[500px] h-[500px] bg-purple-500/20 blur-[120px] rounded-full top-[-100px] left-[-100px] pointer-events-none" />
       <div className="absolute w-[500px] h-[500px] bg-blue-500/20 blur-[120px] rounded-full bottom-[-100px] right-[-100px] pointer-events-none" />
 
       <div className="relative z-10 w-full flex flex-col items-center">
+        <div className="w-full max-w-5xl flex justify-end mb-4">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-sm hover:bg-white/10 transition"
+          >
+            Logout
+          </button>
+        </div>
+
         <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
           InsightFlow
         </h1>
