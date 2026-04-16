@@ -1,52 +1,50 @@
 export const buildPrompt = (reviews: string, tone: string) => `
-You are an expert conversion analyst.
+You are an expert conversion strategist.
 
-Analyze these reviews:
+Analyze the following user reviews.
+
+IMPORTANT RULES:
+- Only extract painPoints if users EXPLICITLY mention negative experiences (complaints, frustrations, obstacles).
+- Do NOT invent problems.
+- If no clear problems exist, return:
+  "painPoints": []
+  "topProblem": "No major issues mentioned"
+  "recommendation": "Emphasize strengths and trust signals (use concrete strengths from the reviews)"
+
+- Benefits must reflect positive experiences explicitly mentioned by users.
+- Ignore business/owner responses (e.g. "Response from the owner"); focus on the customer sentiment.
+- Be accurate and realistic.
+
+Tone: ${tone}
+
+Reviews:
 ${reviews}
 
-STRICT RULES:
-- Return ONLY valid JSON
-- No explanation
-- No extra text
+Return ONLY valid JSON. No markdown. No code fences.
 
-Extract:
-- painPoints
-- benefits
-- keywords
-
-Find:
-- topProblem
-
-Give:
-- recommendation
-
-Generate landing page content in ${tone} tone:
-- headline
-- subheadline
-- benefits
-- testimonials
-- CTA
-
-Scores (0-100):
-- conversion
-- clarity
-- emotion
-
-Return JSON:
+Format:
 {
-  "headline": "",
-  "subheadline": "",
-  "benefits": [],
-  "painPoints": [],
-  "keywords": [],
-  "topProblem": "",
-  "recommendation": "",
+  "painPoints": ["string"],
+  "benefits": ["string"],
+  "keywords": ["string"],
+  "topProblem": "string",
+  "recommendation": "string",
   "scores": {
     "conversion": 0,
     "clarity": 0,
     "emotion": 0
   },
-  "testimonials": [],
-  "cta": ""
+  "landing": {
+    "headline": "string",
+    "subheadline": "string",
+    "benefits": ["string"],
+    "cta": "string"
+  },
+  "testimonials": [
+    {
+      "name": "string",
+      "review": "string"
+    }
+  ]
 }
 `;

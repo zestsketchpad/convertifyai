@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(parsed.value);
+    return NextResponse.json(normalizeGeneratedPayload(parsed.value, reviews));
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to generate" }, { status: 500 });
@@ -142,4 +142,177 @@ function extractJsonCandidate(text: string) {
   if (end === -1 || end <= start) return trimmed.slice(start);
 
   return trimmed.slice(start, end + 1);
+}
+
+const FALLBACK_TOP_PROBLEM = "No major issues mentioned";
+
+function normalizeGeneratedPayload(value: unknown, reviews: string) {
+  if (!value || typeof value !== "object") return value;
+
+  const obj = value as Record<string, unknown>;
+
+  const painPoints = toStringArray(obj.painPoints);
+  const benefits = toStringArray(obj.benefits);
+  const keywords = toStringArray(obj.keywords);
+
+  const topProblem = typeof obj.topProblem === "string" ? obj.topProblem.trim() : "";
+  const recommendation =
+    typeof obj.recommendation === "string" ? obj.recommendation.trim() : "";
+
+  const scoresObj =
+    obj.scores && typeof obj.scores === "object"
+      ? (obj.scores as Record<string, unknown>)
+      : {};
+
+  const scores = {
+    conversion: toScore(scoresObj.conversion),
+    clarity: toScore(scoresObj.clarity),
+    emotion: toScore(scoresObj.emotion),
+  };
+
+  const landingObj =
+    obj.landing && typeof obj.landing === "object"
+      ? (obj.landing as Record<string, unknown>)
+      : {};
+
+  const legacyHeadline = typeof obj.headline === "string" ? obj.headline : "";
+  const legacySubheadline =
+    typeof obj.subheadline === "string" ? obj.subheadline : "";
+  const legacyCta = typeof obj.cta === "string" ? obj.cta : "";
+
+  const landingBenefits =
+    toStringArray(landingObj.benefits).length > 0
+      ? toStringArray(landingObj.benefits)
+      : toStringArray(obj.benefits);
+
+  const landing = {
+    headline: toNonEmptyString(landingObj.headline, legacyHeadline),
+    subheadline: toNonEmptyString(landingObj.subheadline, legacySubheadline),
+    benefits: landingBenefits,
+    cta: toNonEmptyString(landingObj.cta, legacyCta),
+  };
+
+  const testimonialsRaw = Array.isArray(obj.testimonials) ? obj.testimonials : [];
+  const testimonials = testimonialsRaw
+    .map((item) => normalizeTestimonial(item))
+    .filter((t): t is { name: string; review: string } => t !== null);
+
+  const noExplicitNegatives = !containsNegativeSignal(reviews);
+  const shouldForceNoIssues = noExplicitNegatives && painPoints.length > 0;
+  const finalPainPoints = shouldForceNoIssues ? [] : painPoints;
+
+  const hasProblems = finalPainPoints.length > 0;
+  const finalTopProblem = hasProblems
+    ? topProblem || finalPainPoints[0] || FALLBACK_TOP_PROBLEM
+    : FALLBACK_TOP_PROBLEM;
+
+  const finalRecommendation = hasProblems
+    ? recommendation || `Fix the top issue: ${finalTopProblem}`
+    : recommendation || buildStrengthsRecommendation(benefits, landingBenefits, keywords);
+
+  return {
+    painPoints: finalPainPoints,
+    benefits,
+    keywords,
+    topProblem: finalTopProblem,
+    recommendation: finalRecommendation,
+    scores,
+    landing,
+    testimonials,
+  };
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((v): v is string => typeof v === "string")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function toNonEmptyString(value: unknown, fallback: string) {
+  const str = typeof value === "string" ? value.trim() : "";
+  const fb = typeof fallback === "string" ? fallback.trim() : "";
+  return str || fb;
+}
+
+function toScore(value: unknown) {
+  const num = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return Math.max(0, Math.min(100, Math.round(num)));
+}
+
+function normalizeTestimonial(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const obj = value as Record<string, unknown>;
+
+  const name =
+    (typeof obj.name === "string" ? obj.name : "") ||
+    (typeof obj.source === "string" ? obj.source : "") ||
+    "Anonymous";
+
+  const review =
+    (typeof obj.review === "string" ? obj.review : "") ||
+    (typeof obj.text === "string" ? obj.text : "");
+
+  const finalName = name.trim();
+  const finalReview = review.trim();
+  if (!finalReview) return null;
+
+  return { name: finalName || "Anonymous", review: finalReview };
+}
+
+function buildStrengthsRecommendation(
+  benefits: string[],
+  landingBenefits: string[],
+  keywords: string[],
+) {
+  const strengths = uniqueStrings([
+    ...benefits.slice(0, 4),
+    ...landingBenefits.slice(0, 4),
+    ...keywords.slice(0, 4),
+  ]).slice(0, 3);
+
+  if (strengths.length === 0) return "Emphasize strengths and trust signals.";
+  return `Highlight strengths and trust signals like ${strengths.join(", ")}.`;
+}
+
+function uniqueStrings(values: string[]) {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+  }
+  return out;
+}
+
+function containsNegativeSignal(text: string) {
+  const t = text.toLowerCase();
+  return [
+    "too expensive",
+    "expensive",
+    "overpriced",
+    "pricey",
+    "costly",
+    "slow",
+    "delay",
+    "hard to use",
+    "difficult",
+    "confusing",
+    "bad",
+    "worst",
+    "issue",
+    "problem",
+    "bug",
+    "crash",
+    "error",
+    "refund",
+    "cancel",
+    "unhelpful",
+    "rude",
+    "disappointed",
+    "waste",
+  ].some((needle) => t.includes(needle));
 }
