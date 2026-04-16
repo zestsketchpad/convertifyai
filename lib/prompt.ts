@@ -52,9 +52,9 @@ Format:
   "topProblem": "string",
   "recommendation": "string",
   "scores": {
-    "conversion": 0,
-    "clarity": 0,
-    "emotion": 0
+    "conversion": 80,
+    "clarity": 85,
+    "emotion": 80
   },
   "landing": {
     "headline": "string",
