@@ -48,63 +48,72 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center p-6">
-      <h1 className="text-3xl font-bold mb-6">
-        AI Landing Page Generator {"\u{1F680}"}
-      </h1>
+    <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center p-6 relative overflow-hidden">
+      <div className="absolute w-[500px] h-[500px] bg-purple-500/20 blur-[120px] rounded-full top-[-100px] left-[-100px] pointer-events-none" />
+      <div className="absolute w-[500px] h-[500px] bg-blue-500/20 blur-[120px] rounded-full bottom-[-100px] right-[-100px] pointer-events-none" />
 
-      <textarea
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Paste user reviews here..."
-        className="w-full max-w-2xl h-40 p-4 rounded-lg bg-white/10 border border-white/20 mb-4"
-      />
+      <div className="relative z-10 w-full flex flex-col items-center">
+        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          InsightFlow
+        </h1>
 
-      <div className="flex gap-3 mb-4">
-        {["Professional", "Casual", "Luxury"].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTone(t)}
-            className={`px-4 py-2 rounded-lg border ${
-              tone === t ? "bg-purple-500" : "bg-white/10 border-white/20"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      <button
-        onClick={handleGenerate}
-        disabled={loading}
-        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg font-semibold disabled:opacity-60"
-      >
-        {loading ? "Generating..." : "Generate"}
-      </button>
-
-      {error && (
-        <p className="mt-4 w-full max-w-2xl text-red-300 whitespace-pre-wrap">
-          {error}
+        <p className="text-gray-400 text-center max-w-xl mb-8">
+          Turn user feedback into high-converting landing pages instantly
         </p>
-      )}
 
-      {data && (
-        <div className="mt-10 space-y-8 w-full max-w-4xl">
-          <Insights data={data} />
-          <TopProblem data={data} />
-          <Scores data={data} />
-          <Preview data={data} />
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Paste user reviews here..."
+          className="w-full max-w-2xl h-40 p-4 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] backdrop-blur-xl mb-4"
+        />
 
-          <details className="bg-white/5 p-4 rounded-xl border border-white/10">
-            <summary className="cursor-pointer text-sm text-gray-300">
-              View raw JSON
-            </summary>
-            <pre className="mt-3 overflow-auto text-xs text-gray-200">
-              {JSON.stringify(data, null, 2)}
-            </pre>
-          </details>
+        <div className="flex gap-3 mb-4">
+          {["Professional", "Casual", "Luxury"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTone(t)}
+              className={`px-4 py-2 rounded-xl border transition ${
+                tone === t ? "bg-purple-500" : "bg-white/10 border-white/20"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
-      )}
+
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:opacity-60 disabled:hover:scale-100"
+        >
+          {loading ? "Analyzing..." : "Generate Insights"}
+        </button>
+
+        {error && (
+          <p className="mt-4 w-full max-w-2xl text-red-300 whitespace-pre-wrap">
+            {error}
+          </p>
+        )}
+
+        {data && (
+          <div className="mt-10 space-y-8 w-full max-w-4xl">
+            <Insights data={data} />
+            <TopProblem data={data} />
+            <Scores data={data} />
+            <Preview data={data} />
+
+            <details className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)]">
+              <summary className="cursor-pointer text-sm text-gray-300">
+                View raw JSON
+              </summary>
+              <pre className="mt-3 overflow-auto text-xs text-gray-200">
+                {JSON.stringify(data, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

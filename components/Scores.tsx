@@ -17,7 +17,7 @@ function Bar({ label, value }: { label: string; value: number }) {
       </div>
       <div className="w-full bg-white/10 rounded-full h-2">
         <div
-          className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full"
+          className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-700"
           style={{ width: `${value}%` }}
         />
       </div>
@@ -32,7 +32,7 @@ export default function Scores({ data }: Props) {
   const emotion = clampScore(scores.emotion);
 
   return (
-    <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+    <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)] hover:scale-[1.02] transition duration-300">
       <h2 className="text-xl font-semibold mb-4">Performance Score</h2>
 
       <div className="space-y-4">
@@ -43,4 +43,3 @@ export default function Scores({ data }: Props) {
     </div>
   );
 }
-

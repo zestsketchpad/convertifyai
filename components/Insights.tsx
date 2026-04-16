@@ -8,8 +8,8 @@ export default function Insights({ data }: Props) {
   const keywords: string[] = Array.isArray(data?.keywords) ? data.keywords : [];
 
   return (
-    <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
-      <h2 className="text-xl font-semibold mb-4">User Insights</h2>
+    <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)] hover:scale-[1.02] transition duration-300">
+      <h2 className="text-xl font-semibold mb-4">What Users Are Saying</h2>
 
       <div className="grid md:grid-cols-3 gap-4">
         <div>
@@ -19,7 +19,9 @@ export default function Insights({ data }: Props) {
           ) : (
             <div className="space-y-1">
               {painPoints.map((p: string, i: number) => (
-                <p key={i}>• {p}</p>
+                <p key={i}>
+                  {"\u2022"} {p}
+                </p>
               ))}
             </div>
           )}
@@ -29,7 +31,9 @@ export default function Insights({ data }: Props) {
           <h3 className="font-medium mb-2 text-green-400">Benefits</h3>
           <div className="space-y-1">
             {benefits.map((b: string, i: number) => (
-              <p key={i}>• {b}</p>
+              <p key={i}>
+                {"\u2022"} {b}
+              </p>
             ))}
           </div>
         </div>
@@ -38,7 +42,9 @@ export default function Insights({ data }: Props) {
           <h3 className="font-medium mb-2 text-blue-400">Keywords</h3>
           <div className="space-y-1">
             {keywords.map((k: string, i: number) => (
-              <p key={i}>• {k}</p>
+              <p key={i}>
+                {"\u2022"} {k}
+              </p>
             ))}
           </div>
         </div>
@@ -46,4 +52,3 @@ export default function Insights({ data }: Props) {
     </div>
   );
 }
-
