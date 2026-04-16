@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toFriendlyAuthError } from "@/lib/auth-errors";
@@ -9,10 +9,22 @@ function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Finishing sign-in...");
+  const handledRef = useRef(false);
 
   useEffect(() => {
     const finishOAuth = async () => {
+      if (handledRef.current) return;
+      handledRef.current = true;
+
       const code = searchParams.get("code");
+      const oauthError = searchParams.get("error");
+      const oauthErrorDescription = searchParams.get("error_description");
+
+      if (oauthError) {
+        setMessage(oauthErrorDescription || "Google sign-in failed. Redirecting to login...");
+        router.replace("/login");
+        return;
+      }
 
       if (!code) {
         setMessage("Missing OAuth code. Redirecting to login...");
