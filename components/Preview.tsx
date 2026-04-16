@@ -23,6 +23,8 @@ type Theme = {
   ring: string;
 };
 
+type LayoutStyle = "story" | "trust" | "offer";
+
 const THEMES: Theme[] = [
   {
     shell:
@@ -132,6 +134,11 @@ export default function Preview({ data }: Props) {
   const conversion = data?.scores?.conversion ?? 50;
   const clarity = data?.scores?.clarity ?? 50;
   const emotion = data?.scores?.emotion ?? 50;
+
+  const computedLayout: LayoutStyle =
+    painPoints.length > 0 ? "trust" : conversion >= 80 ? "offer" : "story";
+  const layoutStyle: LayoutStyle = data?.design?.layoutStyle || computedLayout;
+
   const stats = [
     { label: "Conversion Potential", value: `${conversion}%` },
     { label: "Message Clarity", value: `${clarity}%` },
@@ -173,37 +180,105 @@ export default function Preview({ data }: Props) {
         </div>
       </div>
 
-      <section className={`relative z-10 p-8 md:p-12 ${theme.hero}`}>
-        <h1 className={`text-3xl md:text-5xl leading-tight font-black mb-4 ${theme.title}`}>
-          {headline}
-        </h1>
-        <p className={`max-w-2xl text-base md:text-lg mb-6 ${theme.subtitle}`}>{subheadline}</p>
+      {layoutStyle === "offer" && (
+        <section className={`relative z-10 p-8 md:p-12 ${theme.hero}`}>
+          <h1 className={`text-3xl md:text-5xl leading-tight font-black mb-4 ${theme.title}`}>
+            {headline}
+          </h1>
+          <p className={`max-w-2xl text-base md:text-lg mb-6 ${theme.subtitle}`}>{subheadline}</p>
 
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <button
-            type="button"
-            className={`px-6 py-3 rounded-full text-sm md:text-base font-bold transition ${theme.ctaPrimary}`}
-          >
-            {cta}
-          </button>
-          <button
-            type="button"
-            className={`px-5 py-3 rounded-full text-sm md:text-base font-semibold transition ${theme.ctaSecondary}`}
-          >
-            View Portfolio
-          </button>
-        </div>
-
-        {visibleKeywords.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {visibleKeywords.map((keyword, i) => (
-              <span key={`${keyword}-${i}`} className={`px-3 py-1 rounded-full text-xs ${theme.chip}`}>
-                {toTitleCase(keyword)}
-              </span>
-            ))}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <button
+              type="button"
+              className={`px-6 py-3 rounded-full text-sm md:text-base font-bold transition ${theme.ctaPrimary}`}
+            >
+              {cta}
+            </button>
+            <button
+              type="button"
+              className={`px-5 py-3 rounded-full text-sm md:text-base font-semibold transition ${theme.ctaSecondary}`}
+            >
+              View Portfolio
+            </button>
           </div>
-        )}
-      </section>
+
+          {visibleKeywords.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {visibleKeywords.map((keyword, i) => (
+                <span key={`${keyword}-${i}`} className={`px-3 py-1 rounded-full text-xs ${theme.chip}`}>
+                  {toTitleCase(keyword)}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {layoutStyle === "story" && (
+        <section className={`relative z-10 p-8 md:p-12 ${theme.hero}`}>
+          <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] mb-3 text-slate-200/80">Customer Story Driven</p>
+              <h1 className={`text-3xl md:text-5xl leading-tight font-black mb-4 ${theme.title}`}>
+                {headline}
+              </h1>
+              <p className={`max-w-2xl text-base md:text-lg mb-6 ${theme.subtitle}`}>{subheadline}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  className={`px-6 py-3 rounded-full text-sm md:text-base font-bold transition ${theme.ctaPrimary}`}
+                >
+                  {cta}
+                </button>
+                <button
+                  type="button"
+                  className={`px-5 py-3 rounded-full text-sm md:text-base font-semibold transition ${theme.ctaSecondary}`}
+                >
+                  Read Success Stories
+                </button>
+              </div>
+            </div>
+            <div className={`rounded-2xl p-5 ${theme.card}`}>
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-300/80 mb-3">Top Customer Signals</p>
+              <div className="space-y-2">
+                {visibleKeywords.slice(0, 4).map((keyword, i) => (
+                  <p key={`${keyword}-${i}`} className="text-sm">• {toTitleCase(keyword)}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {layoutStyle === "trust" && (
+        <section className={`relative z-10 p-8 md:p-12 ${theme.hero}`}>
+          <div className="grid md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] mb-3 text-slate-200/80">Trust + Clarity First</p>
+              <h1 className={`text-3xl md:text-5xl leading-tight font-black mb-4 ${theme.title}`}>
+                {headline}
+              </h1>
+              <p className={`max-w-2xl text-base md:text-lg mb-5 ${theme.subtitle}`}>{subheadline}</p>
+            </div>
+            <button
+              type="button"
+              className={`px-6 py-3 rounded-full text-sm md:text-base font-bold transition h-fit ${theme.ctaPrimary}`}
+            >
+              {cta}
+            </button>
+          </div>
+
+          {visiblePainPoints.length > 0 && (
+            <div className="grid md:grid-cols-3 gap-3 mt-5">
+              {visiblePainPoints.map((point, i) => (
+                <div key={`${point}-${i}`} className={`p-4 rounded-xl ${theme.card}`}>
+                  <p className="text-sm">{point}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="relative z-10 p-6 md:p-8 grid md:grid-cols-3 gap-4">
         {stats.map((stat) => (
@@ -252,7 +327,7 @@ export default function Preview({ data }: Props) {
         </div>
       </section>
 
-      {visiblePainPoints.length > 0 && (
+      {visiblePainPoints.length > 0 && layoutStyle !== "trust" && (
         <section className="relative z-10 px-6 md:px-8 pb-6">
           <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>How We Address Concerns</h2>
           <div className="grid gap-3">

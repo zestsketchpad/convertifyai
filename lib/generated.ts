@@ -11,6 +11,12 @@ export type GeneratedLanding = {
   cta: string;
 };
 
+export type GeneratedDesignHints = {
+  layoutStyle?: "story" | "trust" | "offer";
+  vibe?: "bold" | "premium" | "friendly";
+  urgency?: "low" | "medium" | "high";
+};
+
 export type GeneratedTestimonial = {
   name: string;
   review: string;
@@ -25,6 +31,7 @@ export type GeneratedPayload = {
   scores: GeneratedScores;
   landing: GeneratedLanding;
   testimonials: GeneratedTestimonial[];
+  design?: GeneratedDesignHints;
 };
 
 export type GenerateApiErrorBody = {

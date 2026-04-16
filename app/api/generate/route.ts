@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildPrompt } from "@/lib/prompt";
 import { setDefaultResultOrder } from "node:dns";
 import {
+  buildReviewModelContext,
   HARD_MAX_REVIEW_INPUT_CHARS,
   MAX_REVIEW_INPUT_CHARS,
   sanitizeReviewInput,
@@ -61,7 +62,8 @@ export async function POST(req: Request) {
 
   const truncatedReviews = truncateReviewInput(reviews, MAX_REVIEW_INPUT_CHARS);
 
-  const prompt = buildPrompt(truncatedReviews.value, tone);
+  const reviewContext = buildReviewModelContext(truncatedReviews.value);
+  const prompt = buildPrompt(reviewContext.cleanForPrompt, tone);
 
   try {
     const url =
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      normalizeGeneratedPayload(parsed.value, truncatedReviews.value),
+      normalizeGeneratedPayload(parsed.value, reviewContext.cleanForAnalysis),
     );
   } catch (error) {
     const info = getNetworkErrorInfo(error);
@@ -353,6 +355,15 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
     cta: toNonEmptyString(landingObj.cta, legacyCta),
   };
 
+  const designObj =
+    obj.design && typeof obj.design === "object"
+      ? (obj.design as Record<string, unknown>)
+      : {};
+
+  const layoutStyle = toEnumValue(designObj.layoutStyle, ["story", "trust", "offer"]);
+  const vibe = toEnumValue(designObj.vibe, ["bold", "premium", "friendly"]);
+  const urgency = toEnumValue(designObj.urgency, ["low", "medium", "high"]);
+
   const testimonialsRaw = Array.isArray(obj.testimonials) ? obj.testimonials : [];
   const testimonials = testimonialsRaw
     .map((item) => normalizeTestimonial(item))
@@ -407,8 +418,19 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
     recommendation: finalRecommendation,
     scores,
     landing,
+    design: {
+      layoutStyle,
+      vibe,
+      urgency,
+    },
     testimonials,
   };
+}
+
+function toEnumValue<T extends string>(value: unknown, options: T[]): T | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().toLowerCase() as T;
+  return options.includes(normalized) ? normalized : undefined;
 }
 
 function toStringArray(value: unknown): string[] {
@@ -562,6 +584,23 @@ function containsNegativeSignal(text: string) {
     "rude",
     "disappointed",
     "waste",
+    "not satisfied",
+    "not happy",
+    "poor",
+    "complaint",
+    "couldn't",
+    "could not",
+    "didn't",
+    "did not",
+    "no body will pay",
+    "too high",
+    "high price",
+    "overcharged",
+    "without notice",
+    "didn't treat",
+    "finished the call",
+    "waiting time",
+    "long wait",
   ].some((needle) => t.includes(needle));
 }
 
