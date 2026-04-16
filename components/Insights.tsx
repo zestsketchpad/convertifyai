@@ -29,24 +29,32 @@ export default function Insights({ data }: Props) {
 
         <div>
           <h3 className="font-medium mb-2 text-green-400">Benefits</h3>
-          <div className="space-y-1">
-            {benefits.map((b: string, i: number) => (
-              <p key={i}>
-                {"\u2022"} {b}
-              </p>
-            ))}
-          </div>
+          {benefits.length === 0 ? (
+            <p className="text-sm text-gray-400">No data available</p>
+          ) : (
+            <div className="space-y-1">
+              {benefits.map((b: string, i: number) => (
+                <p key={i}>
+                  {"\u2022"} {b}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
           <h3 className="font-medium mb-2 text-blue-400">Keywords</h3>
-          <div className="space-y-1">
-            {keywords.map((k: string, i: number) => (
-              <p key={i}>
-                {"\u2022"} {k}
-              </p>
-            ))}
-          </div>
+          {keywords.length === 0 ? (
+            <p className="text-sm text-gray-400">No data available</p>
+          ) : (
+            <div className="space-y-1">
+              {keywords.map((k: string, i: number) => (
+                <p key={i}>
+                  {"\u2022"} {k}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

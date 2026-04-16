@@ -97,10 +97,25 @@ export default function Home() {
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:opacity-60 disabled:hover:scale-100"
+          className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
         >
           {loading ? "Analyzing..." : "Generate Insights"}
         </button>
+
+        {loading && (
+          <div className="mt-6 flex items-center gap-2 text-purple-400">
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+            <div
+              className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <div
+              className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
+            <span className="ml-2">Analyzing feedback...</span>
+          </div>
+        )}
 
         {error && (
           <p className="mt-4 w-full max-w-2xl text-red-300 whitespace-pre-wrap">
