@@ -15,8 +15,6 @@ IMPORTANT RULES:
 - Benefits must be short, clear phrases (2–5 words). Avoid single words and full sentences.
 - Ignore business/owner responses (e.g. "Response from the owner"); focus on the customer sentiment.
 - Be accurate and realistic.
-- Input may contain copied UI junk from Google Maps (Like, Share, ratings, timestamps). Ignore such noise.
-- If even one clear complaint appears, include it in painPoints.
 
 SCORING RULES:
 - Scores must NEVER be 0.
@@ -38,13 +36,6 @@ RECOMMENDATION RULE:
 - Must be specific and actionable.
 - Must reference actual strengths or issues from the reviews.
 - Avoid generic phrases like "emphasize strengths" or "trust signals".
-
-DESIGN HINT RULE:
-- Return design hints to drive dynamic landing layout:
-  - layoutStyle: "story" | "trust" | "offer"
-  - vibe: "bold" | "premium" | "friendly"
-  - urgency: "low" | "medium" | "high"
-- Choose these based on review sentiment and intent.
 
 Tone: ${tone}
 
@@ -70,11 +61,6 @@ Format:
     "subheadline": "string",
     "benefits": ["string"],
     "cta": "string"
-  },
-  "design": {
-    "layoutStyle": "trust",
-    "vibe": "premium",
-    "urgency": "medium"
   },
   "testimonials": [
     {

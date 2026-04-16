@@ -1,92 +1,74 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 import Insights from "@/components/Insights";
 import TopProblem from "@/components/TopProblem";
 import Scores from "@/components/Scores";
 import Preview from "@/components/Preview";
-import type { GeneratedPayload, GenerateApiErrorBody } from "@/lib/generated";
-import { supabase } from "@/lib/supabase";
-import { MAX_REVIEW_INPUT_CHARS } from "@/lib/review-input";
+import { SystemRenderer } from "@/components/SystemRenderer";
+import { Strategy } from "@/lib/types";
+import { applyRules } from "@/lib/rules";
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [tone, setTone] = useState("Professional");
-  const [data, setData] = useState<GeneratedPayload | null>(null);
+  const [data, setData] = useState<any>(null);
+  const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    let mounted = true;
-
-    const checkUser = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      if (!mounted) return;
-
-      if (!userData.user) {
-        router.replace("/login");
-        return;
-      }
-
-      setAuthReady(true);
-    };
-
-    checkUser();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  };
+  const [useNewSystem, setUseNewSystem] = useState(true);
 
   const handleGenerate = async () => {
-    const cleanedInput = input.trim();
-
-    if (!cleanedInput) {
+    if (!input.trim()) {
       setError("Paste some reviews first.");
-      return;
-    }
-
-    if (cleanedInput.length > MAX_REVIEW_INPUT_CHARS) {
-      setError(
-        `Your input is too long for the current AI limit. Keep it under ${MAX_REVIEW_INPUT_CHARS} characters or split into smaller batches.`,
-      );
       return;
     }
 
     setLoading(true);
     setError(null);
     setData(null);
+    setStrategy(null);
 
     try {
-      const res = await axios.post("/api/generate", {
-        reviews: cleanedInput,
+      // Step 1: Generate insights
+      const insightsRes = await axios.post("/api/generate", {
+        reviews: input,
         tone,
       });
-      setData(res.data);
+      const insightsData = insightsRes.data;
+      setData(insightsData);
+
+      // Step 2: Get strategic decisions
+      const strategyRes = await axios.post("/api/strategy", {
+        reviews: input,
+        tone,
+      });
+      const strategyData = strategyRes.data;
+
+      // Step 3: Apply rules to refine strategy
+      const { strategy: refinedStrategy, theme } = applyRules(strategyData);
+      setStrategy(refinedStrategy);
+
+      // Merge data with theme for rendering
+      setData({
+        ...insightsData,
+        _strategy: refinedStrategy,
+        _theme: theme,
+        reviewsText: input,
+      });
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const responseData = err.response?.data as GenerateApiErrorBody | string | undefined;
-        const responseObject =
-          typeof responseData === "string" || !responseData ? undefined : responseData;
+        const responseData = err.response?.data as any;
         const message =
-          typeof responseObject?.error === "string"
-            ? responseObject.error
+          typeof responseData?.error === "string"
+            ? responseData.error
             : typeof responseData === "string"
               ? responseData
               : err.message;
-        const code = typeof responseObject?.code === "string" ? responseObject.code : "";
-        const hint = typeof responseObject?.hint === "string" ? responseObject.hint : "";
+        const code = typeof responseData?.code === "string" ? responseData.code : "";
+        const hint = typeof responseData?.hint === "string" ? responseData.hint : "";
         const details =
-          typeof responseObject?.details === "string" ? responseObject.details : "";
+          typeof responseData?.details === "string" ? responseData.details : "";
 
         const parts = [
           message,
@@ -104,30 +86,13 @@ export default function Home() {
     }
   };
 
-  if (!authReady) {
-    return (
-      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
-        <p className="text-gray-300">Checking session...</p>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center p-6 relative overflow-hidden">
-      <div className="absolute w-[500px] h-[500px] bg-purple-500/20 blur-[120px] rounded-full top-[-100px] left-[-100px] pointer-events-none" />
-      <div className="absolute w-[500px] h-[500px] bg-blue-500/20 blur-[120px] rounded-full bottom-[-100px] right-[-100px] pointer-events-none" />
+      <div className="absolute w-125 h-125 bg-purple-500/20 blur-[120px] rounded-full -top-25 -left-25 pointer-events-none" />
+      <div className="absolute w-125 h-125 bg-blue-500/20 blur-[120px] rounded-full -bottom-25 -right-25 pointer-events-none" />
 
       <div className="relative z-10 w-full flex flex-col items-center">
-        <div className="w-full max-w-5xl flex justify-end mb-4">
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-sm hover:bg-white/10 transition"
-          >
-            Logout
-          </button>
-        </div>
-
-        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-linear-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
           InsightFlow
         </h1>
 
@@ -137,25 +102,10 @@ export default function Home() {
 
         <textarea
           value={input}
-          onChange={(e) => {
-            const next = e.target.value;
-            if (next.length <= MAX_REVIEW_INPUT_CHARS) {
-              setInput(next);
-              return;
-            }
-
-            setInput(next.slice(0, MAX_REVIEW_INPUT_CHARS));
-            setError(
-              `Input capped at ${MAX_REVIEW_INPUT_CHARS} characters for reliable generation.`,
-            );
-          }}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Paste user reviews here..."
           className="w-full max-w-2xl h-40 p-4 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] backdrop-blur-xl mb-4"
         />
-
-        <p className="w-full max-w-2xl -mt-2 mb-4 text-right text-xs text-gray-400">
-          {input.length}/{MAX_REVIEW_INPUT_CHARS}
-        </p>
 
         <div className="flex gap-3 mb-4">
           {["Professional", "Casual", "Luxury"].map((t) => (
@@ -174,7 +124,7 @@ export default function Home() {
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+          className="px-6 py-3 rounded-xl font-semibold bg-linear-to-r from-purple-500 to-blue-500 hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
         >
           {loading ? "Analyzing..." : "Generate Insights"}
         </button>
@@ -201,20 +151,64 @@ export default function Home() {
         )}
 
         {data && (
-          <div className="mt-10 space-y-8 w-full max-w-4xl">
-            <Insights data={data} />
-            <TopProblem data={data} />
-            <Scores data={data} />
-            <Preview data={data} />
+          <div className="mt-10 space-y-8 w-full">
+            {/* Sidebar analysis */}
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setUseNewSystem(false)}
+                  className={`px-4 py-2 rounded-lg border transition ${
+                    !useNewSystem
+                      ? "bg-purple-500 border-purple-500"
+                      : "bg-white/10 border-white/20"
+                  }`}
+                >
+                  Classic Preview
+                </button>
+                <button
+                  onClick={() => setUseNewSystem(true)}
+                  className={`px-4 py-2 rounded-lg border transition ${
+                    useNewSystem
+                      ? "bg-blue-500 border-blue-500"
+                      : "bg-white/10 border-white/20"
+                  }`}
+                >
+                  Strategic Design System
+                </button>
+              </div>
 
-            <details className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)]">
-              <summary className="cursor-pointer text-sm text-gray-300">
-                View raw JSON
-              </summary>
-              <pre className="mt-3 overflow-auto text-xs text-gray-200">
-                {JSON.stringify(data, null, 2)}
-              </pre>
-            </details>
+              {!useNewSystem && (
+                <>
+                  <Insights data={data} />
+                  <TopProblem data={data} />
+                  <Scores data={data} />
+                  <Preview data={data} tone={tone} />
+                </>
+              )}
+            </div>
+
+            {/* New system renderer */}
+            {useNewSystem && data._strategy && data._theme && (
+              <div className="w-full">
+                <SystemRenderer
+                  strategy={data._strategy}
+                  data={data}
+                  theme={data._theme}
+                  showExplanation={true}
+                />
+              </div>
+            )}
+
+            <div className="max-w-4xl mx-auto">
+              <details className="bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)]">
+                <summary className="cursor-pointer text-sm text-gray-300">
+                  View raw JSON
+                </summary>
+                <pre className="mt-3 overflow-auto text-xs text-gray-200">
+                  {JSON.stringify(data, null, 2)}
+                </pre>
+              </details>
+            </div>
           </div>
         )}
       </div>

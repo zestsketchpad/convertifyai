@@ -1,7 +1,5 @@
-import type { GeneratedPayload } from "@/lib/generated";
-
 type Props = {
-  data: GeneratedPayload | null;
+  data: any;
 };
 
 export default function Insights({ data }: Props) {

@@ -1,488 +1,665 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { GeneratedPayload } from "@/lib/generated";
-import type { PageBlock, PageIndustry, PageMood } from "@/lib/page-plan";
+import { useEffect, useState, type ReactNode } from "react";
+import { inferIndustry, getDesign } from "@/lib/page-plan";
+import { buildImageIntentKeywords, getImagePlaceholder, getOpenImageSources } from "@/lib/icons";
 
 type Props = {
-  data: GeneratedPayload | null;
+  data: any;
+  tone?: string;
 };
 
-type Theme = {
-  shell: string;
-  hero: string;
-  heroGlow: string;
-  title: string;
-  subtitle: string;
-  nav: string;
-  chip: string;
-  ctaPrimary: string;
-  ctaSecondary: string;
-  card: string;
-  sectionTitle: string;
-  input: string;
-  ring: string;
-};
+const CheckIcon = () => (
+  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+  </svg>
+);
 
-const THEMES: Record<PageMood, Theme> = {
-  premium: {
-    shell: "bg-gradient-to-b from-zinc-950 via-neutral-950 to-black text-zinc-100 font-[family-name:'Segoe_UI',Tahoma,sans-serif]",
-    hero: "bg-gradient-to-br from-rose-500/22 via-orange-500/16 to-zinc-950",
-    heroGlow: "bg-rose-300/18",
-    title: "text-rose-50",
-    subtitle: "text-rose-50/80",
-    nav: "text-zinc-200/90",
-    chip: "bg-rose-500/15 border border-rose-300/30 text-rose-50",
-    ctaPrimary: "bg-rose-300 text-zinc-950 hover:bg-rose-200 shadow-[0_0_28px_rgba(251,113,133,0.4)]",
-    ctaSecondary: "border border-rose-300/35 text-rose-100 hover:bg-rose-400/10",
-    card: "bg-zinc-900/75 border border-zinc-700/80 shadow-[0_18px_50px_rgba(0,0,0,0.36)]",
-    sectionTitle: "text-rose-50",
-    input: "bg-zinc-900/70 border border-zinc-700 text-zinc-100 placeholder:text-zinc-400",
-    ring: "focus:ring-rose-400/60",
-  },
-  warm: {
-    shell: "bg-gradient-to-b from-stone-950 via-neutral-950 to-black text-stone-100 font-[family-name:'Trebuchet_MS',Verdana,sans-serif]",
-    hero: "bg-gradient-to-br from-amber-500/18 via-orange-500/12 to-stone-950",
-    heroGlow: "bg-amber-300/16",
-    title: "text-amber-50",
-    subtitle: "text-amber-50/80",
-    nav: "text-stone-200/90",
-    chip: "bg-amber-500/15 border border-amber-300/30 text-amber-50",
-    ctaPrimary: "bg-amber-300 text-stone-950 hover:bg-amber-200 shadow-[0_0_28px_rgba(245,158,11,0.35)]",
-    ctaSecondary: "border border-amber-300/35 text-amber-50 hover:bg-amber-400/10",
-    card: "bg-stone-900/75 border border-stone-700/80 shadow-[0_18px_50px_rgba(0,0,0,0.34)]",
-    sectionTitle: "text-amber-50",
-    input: "bg-stone-900/70 border border-stone-700 text-stone-100 placeholder:text-stone-400",
-    ring: "focus:ring-amber-400/60",
-  },
-  bold: {
-    shell: "bg-gradient-to-b from-slate-950 via-slate-900 to-black text-slate-100 font-[family-name:'Trebuchet_MS',Verdana,sans-serif]",
-    hero: "bg-gradient-to-br from-cyan-500/22 via-blue-500/14 to-slate-950",
-    heroGlow: "bg-cyan-300/16",
-    title: "text-cyan-50",
-    subtitle: "text-cyan-50/80",
-    nav: "text-slate-200/90",
-    chip: "bg-cyan-500/15 border border-cyan-300/30 text-cyan-50",
-    ctaPrimary: "bg-cyan-300 text-slate-950 hover:bg-cyan-200 shadow-[0_0_28px_rgba(34,211,238,0.34)]",
-    ctaSecondary: "border border-cyan-300/35 text-cyan-50 hover:bg-cyan-400/10",
-    card: "bg-slate-900/75 border border-slate-700/80 shadow-[0_18px_50px_rgba(0,0,0,0.34)]",
-    sectionTitle: "text-cyan-50",
-    input: "bg-slate-900/70 border border-slate-700 text-slate-100 placeholder:text-slate-400",
-    ring: "focus:ring-cyan-400/60",
-  },
-  editorial: {
-    shell: "bg-gradient-to-b from-neutral-950 via-stone-950 to-zinc-950 text-neutral-100 font-[family-name:'Georgia',serif]",
-    hero: "bg-gradient-to-br from-neutral-100/14 via-white/8 to-zinc-950",
-    heroGlow: "bg-white/10",
-    title: "text-white",
-    subtitle: "text-neutral-200/85",
-    nav: "text-neutral-200/90",
-    chip: "bg-white/8 border border-white/15 text-white",
-    ctaPrimary: "bg-white text-zinc-950 hover:bg-neutral-200 shadow-[0_0_24px_rgba(255,255,255,0.22)]",
-    ctaSecondary: "border border-white/15 text-white hover:bg-white/10",
-    card: "bg-white/6 border border-white/10 shadow-[0_18px_50px_rgba(0,0,0,0.34)]",
-    sectionTitle: "text-white",
-    input: "bg-white/6 border border-white/10 text-white placeholder:text-white/45",
-    ring: "focus:ring-white/40",
-  },
-  calm: {
-    shell: "bg-gradient-to-b from-teal-950 via-slate-950 to-black text-teal-50 font-[family-name:'Gill_Sans',Calibri,sans-serif]",
-    hero: "bg-gradient-to-br from-teal-500/20 via-cyan-500/12 to-teal-950",
-    heroGlow: "bg-teal-300/16",
-    title: "text-teal-50",
-    subtitle: "text-teal-50/82",
-    nav: "text-teal-100/90",
-    chip: "bg-teal-500/15 border border-teal-300/30 text-teal-50",
-    ctaPrimary: "bg-teal-300 text-teal-950 hover:bg-teal-200 shadow-[0_0_28px_rgba(45,212,191,0.32)]",
-    ctaSecondary: "border border-teal-300/35 text-teal-50 hover:bg-teal-400/10",
-    card: "bg-teal-950/70 border border-teal-700/70 shadow-[0_18px_50px_rgba(0,0,0,0.34)]",
-    sectionTitle: "text-teal-50",
-    input: "bg-teal-950/70 border border-teal-700 text-teal-50 placeholder:text-teal-200/50",
-    ring: "focus:ring-teal-400/60",
-  },
-};
+const StarIcon = () => (
+  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+  </svg>
+);
 
-function hashString(text: string) {
+const TrendIcon = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17l4-4 3 3 5-5" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 7h5v5" />
+  </svg>
+);
+
+const ShieldIcon = () => (
+  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+  </svg>
+);
+
+const SparklesIcon = () => (
+  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M10 2l1.2 3.3L14.5 6l-3.3 1.2L10 10.5 8.8 7.2 5.5 6l3.3-.7L10 2zm6.5 7.5l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7.7-1.9zM4.5 11l.9 2.5L8 14.4l-2.6.9-.9 2.6-.9-2.6L1 14.4l2.6-.9.9-2.5z" />
+  </svg>
+);
+
+function initials(name: unknown) {
+  if (typeof name !== "string" || !name.trim()) return "A";
+  return name.trim().charAt(0).toUpperCase();
+}
+
+function labelName(name: unknown) {
+  if (typeof name !== "string" || !name.trim()) return "Anonymous";
+  return name.trim();
+}
+
+function accentTextClass(accent: string) {
+  if (accent === "pink") return "text-pink-300";
+  if (accent === "indigo") return "text-indigo-300";
+  if (accent === "orange") return "text-orange-300";
+  return "text-cyan-300";
+}
+
+function avatarGradient(accent: string) {
+  if (accent === "pink") return "from-pink-500 to-rose-500";
+  if (accent === "indigo") return "from-indigo-500 to-purple-500";
+  if (accent === "orange") return "from-orange-500 to-rose-500";
+  return "from-cyan-500 to-blue-500";
+}
+
+function Badge({ text, tint }: { text: string; tint: string }) {
+  return (
+    <p className={`mb-4 inline-flex rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] ${tint}`}>
+      {text}
+    </p>
+  );
+}
+
+function SmartImage({
+  sources,
+  alt,
+  className,
+  fit = "cover",
+}: {
+  sources: string[];
+  alt: string;
+  className?: string;
+  fit?: "cover" | "contain";
+}) {
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [sources]);
+
+  const src = sources[sourceIndex] || sources[sources.length - 1] || "";
+
+  const onImageError = () => {
+    setSourceIndex((prev) => {
+      if (prev < sources.length - 1) return prev + 1;
+      return prev;
+    });
+  };
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={`${className || ""} ${fit === "contain" ? "object-contain" : "object-cover"}`.trim()}
+      loading="lazy"
+      onError={onImageError}
+      referrerPolicy="no-referrer"
+    />
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <header className="mb-10 text-center">
+      <h2 className="text-3xl font-black md:text-4xl">{title}</h2>
+      <p className="mx-auto mt-3 max-w-2xl text-slate-300">{subtitle}</p>
+    </header>
+  );
+}
+
+function PlaceholderImage({
+  hint,
+  bg,
+  label,
+  sources,
+  alt,
+  fit = "cover",
+  minHeightClass = "h-72",
+}: {
+  hint: string;
+  bg: string;
+  label: string;
+  sources: string[];
+  alt: string;
+  fit?: "cover" | "contain";
+  minHeightClass?: string;
+}) {
+  return (
+    <div className={`relative ${minHeightClass} overflow-hidden rounded-2xl border border-white/15 bg-linear-to-br ${bg}`}>
+      <SmartImage sources={sources} alt={alt} fit={fit} className="absolute inset-0 h-full w-full" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/10 via-black/25 to-black/65" />
+      <div className="relative z-10 flex h-full flex-col items-center justify-end p-4 text-center">
+        <p className="mb-2 text-xs uppercase tracking-[0.24em] text-slate-300">{label}</p>
+        <p className="text-lg font-semibold text-white">{hint}</p>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialCard({ t, accent }: { t: any; accent: string }) {
+  const review = typeof t?.review === "string" ? t.review : "Amazing experience and high quality service.";
+  const starsClass = accentTextClass(accent);
+  const avatarClass = avatarGradient(accent);
+
+  return (
+    <article className="rounded-2xl border border-white/15 bg-slate-900/55 p-6 backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
+      <div className={`mb-4 flex gap-1 ${starsClass}`}>
+        {[...Array(5)].map((_, i) => (
+          <StarIcon key={i} />
+        ))}
+      </div>
+      <p className="mb-5 line-clamp-4 text-sm leading-relaxed text-slate-200">"{review}"</p>
+      <div className="flex items-center gap-3 border-t border-white/10 pt-4">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-r ${avatarClass} text-white`}>
+          {initials(t?.name)}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-white">{labelName(t?.name)}</p>
+          <p className="text-xs text-slate-400">Verified Customer</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function hashString(input: string): number {
   let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
     hash |= 0;
   }
   return Math.abs(hash);
 }
 
-function getTheme(mood: PageMood) {
-  return THEMES[mood] || THEMES.premium;
-}
+export default function Preview({ data, tone = "Professional" }: Props) {
+  const [fullscreen, setFullscreen] = useState(false);
 
-function getPlan(data: GeneratedPayload | null) {
-  const plan = data?.pagePlan;
-  if (plan) return plan;
+  const industry = inferIndustry(data);
+  const colors = getDesign(industry).colors;
 
-  const industry: PageIndustry = "general";
-  const mood: PageMood = "premium";
-  const layoutStyle: "story" | "trust" | "offer" = data?.painPoints?.length ? "trust" : "story";
+  const landing = data?.landing || {};
+  const testimonials = Array.isArray(data?.testimonials) ? data.testimonials : [];
+  const benefits = Array.isArray(landing.benefits) ? landing.benefits : [];
+  const keywords = Array.isArray(data?.keywords) ? data.keywords : [];
+  const painPoints = Array.isArray(data?.painPoints) ? data.painPoints : [];
 
-  return {
+  const headline = landing.headline || "Transform Your Experience";
+  const subheadline = landing.subheadline || "Get better results with our service";
+  const cta = landing.cta || "Get Started";
+
+  const heroImage = getImagePlaceholder(industry, "hero");
+  const galleryImage = getImagePlaceholder(industry, "gallery");
+  const teamImage = getImagePlaceholder(industry, "team");
+
+  const contextSeed = `${tone}-${headline}-${keywords.join("-")}-${benefits.slice(0, 3).join("-")}`;
+  const toneNormalized = tone.toLowerCase();
+  const toneOffset = toneNormalized === "casual" ? 1 : toneNormalized === "luxury" ? 2 : 0;
+  const layoutVariant = (hashString(`${industry}-${toneNormalized}-${headline}-${keywords.join("-")}`) + toneOffset) % 3;
+  const benefitColumns = layoutVariant === 1 ? "md:grid-cols-2" : "md:grid-cols-3";
+
+  const heroIntent = buildImageIntentKeywords({
     industry,
-    mood,
-    layoutStyle,
-    sections: fallbackSections(data, layoutStyle),
-  };
-}
+    section: "hero",
+    tone,
+    headline,
+    keywords,
+    benefits,
+    painPoints,
+  });
+  const galleryIntent = buildImageIntentKeywords({
+    industry,
+    section: "gallery",
+    tone,
+    headline,
+    keywords,
+    benefits,
+    painPoints,
+  });
+  const teamIntent = buildImageIntentKeywords({
+    industry,
+    section: "team",
+    tone,
+    headline,
+    keywords,
+    benefits,
+    painPoints,
+  });
+  const creativeIntent = buildImageIntentKeywords({
+    industry,
+    section: "creative",
+    tone,
+    headline,
+    keywords,
+    benefits,
+    painPoints,
+  });
 
-function fallbackSections(data: GeneratedPayload | null, layoutStyle: "story" | "trust" | "offer"): PageBlock[] {
-  const headline = data?.landing?.headline?.trim() || "Your Offer, Reframed for Conversion";
-  const subheadline = data?.landing?.subheadline?.trim() || "Built from real customer language so your message sounds trusted, clear, and actionable.";
-  const cta = data?.landing?.cta?.trim() || "Book A Consultation";
-  const keywords = Array.isArray(data?.keywords) ? data.keywords.slice(0, 5) : [];
-  const benefits = Array.isArray(data?.benefits) ? data.benefits.slice(0, 6) : [];
-  const painPoints = Array.isArray(data?.painPoints) ? data.painPoints.slice(0, 3) : [];
-  const testimonials = Array.isArray(data?.testimonials) ? data.testimonials.slice(0, 4) : [];
-
-  return [
-    {
-      type: "hero",
-      title: headline,
-      subtitle: subheadline,
-      kicker: layoutStyle === "trust" ? "Trust First" : "Customer-Led Story",
-      cta,
-      secondaryCta: "View Details",
-      mediaHint: "premium placeholder visual",
-      layout: layoutStyle === "trust" ? "split" : "center",
-    },
-    {
-      type: "signalPanel",
-      title: "Performance Signals",
-      items: [
-        { label: "Conversion", value: `${data?.scores?.conversion ?? 50}%` },
-        { label: "Clarity", value: `${data?.scores?.clarity ?? 50}%` },
-        { label: "Emotion", value: `${data?.scores?.emotion ?? 50}%` },
-      ],
-    },
-    {
-      type: "benefitGrid",
-      title: "Why Customers Choose This",
-      items: benefits.map((benefit) => ({ title: benefit, description: "Derived from direct review language." })),
-      columns: 3,
-    },
-    ...(testimonials.length > 0
-      ? [
-          {
-            type: "testimonialRail" as const,
-            title: "What Users Say",
-            items: testimonials.map((item) => ({ quote: item.review, author: item.name })),
-            layout: "grid" as const,
-          },
-        ]
-      : []),
-    ...(painPoints.length > 0
-      ? [
-          {
-            type: "faq" as const,
-            title: "How We Address Concerns",
-            items: painPoints.map((point) => ({ q: point, a: "Resolve friction with a clearer process and stronger reassurance." })),
-          },
-        ]
-      : []),
-    {
-      type: "contact",
-      title: "Get A Personalized Plan",
-      description: `A premium lead capture flow built from ${keywords.join(", ") || "customer feedback"}.`,
-      cta,
-    },
-  ];
-}
-
-export default function Preview({ data }: Props) {
-  const plan = getPlan(data);
-  const theme = getTheme(plan.mood);
-  const [fullScreen, setFullScreen] = useState(false);
-
-  const seed = JSON.stringify(plan.sections).slice(0, 240);
-  const accentIndex = hashString(seed) % 3;
-  const accentStyle = accentIndex === 0 ? "glow-cyan" : accentIndex === 1 ? "glow-rose" : "glow-teal";
+  const heroVisual = getOpenImageSources(industry, "hero", contextSeed, heroIntent);
+  const galleryVisual = getOpenImageSources(industry, "gallery", contextSeed, galleryIntent);
+  const teamVisual = getOpenImageSources(industry, "team", contextSeed, teamIntent);
+  const creativeVisual = getOpenImageSources(industry, "creative", contextSeed, creativeIntent);
 
   useEffect(() => {
-    if (!fullScreen) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFullScreen(false);
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && fullscreen) setFullscreen(false);
     };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [fullscreen]);
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [fullScreen]);
+  const metricCards = {
+    healthcare: [
+      { label: "Patients Served", value: "50K+", icon: ShieldIcon },
+      { label: "Care Score", value: "98%", icon: CheckIcon },
+      { label: "Specialists", value: "120+", icon: TrendIcon },
+    ],
+    fashion: [
+      { label: "New Drops", value: "48", icon: SparklesIcon },
+      { label: "Repeat Buyers", value: "67%", icon: CheckIcon },
+      { label: "Avg Order", value: "$148", icon: TrendIcon },
+    ],
+    saas: [
+      { label: "Monthly Active", value: "120K", icon: TrendIcon },
+      { label: "Uptime", value: "99.99%", icon: ShieldIcon },
+      { label: "Saved Hours", value: "18K", icon: CheckIcon },
+    ],
+    ecommerce: [
+      { label: "Orders", value: "12K+", icon: TrendIcon },
+      { label: "Satisfaction", value: "4.9/5", icon: SparklesIcon },
+      { label: "Fast Delivery", value: "24h", icon: CheckIcon },
+    ],
+  } as const;
 
-  const preview = (
-    <div className={`relative overflow-hidden rounded-3xl ${theme.shell}`}>
-      <div className="absolute inset-0 pointer-events-none">
-        <div className={`absolute -top-24 -left-16 h-72 w-72 rounded-full blur-3xl ${theme.heroGlow}`} />
-        <div className={`absolute -bottom-28 right-0 h-80 w-80 rounded-full ${accentStyle === "glow-cyan" ? "bg-cyan-500/10" : accentStyle === "glow-rose" ? "bg-rose-500/10" : "bg-teal-500/10"} blur-3xl`} />
-      </div>
+  const accent = colors.accent;
+  const selectedMetrics = metricCards[(industry as keyof typeof metricCards)] || metricCards.ecommerce;
 
-      <div className="relative z-10 border-b border-white/10 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold tracking-[0.18em] uppercase">AI Landing Preview</div>
-          <div className="text-[11px] text-white/50 mt-1">{plan.industry} / {plan.mood} / {plan.layoutStyle}</div>
-        </div>
-        <nav className={`flex items-center gap-3 text-sm ${theme.nav}`}>
-          <a href="#benefits">Benefits</a>
-          <a href="#proof">Proof</a>
-          <a href="#action">Action</a>
-        </nav>
-      </div>
+  const toneBadgeText =
+    toneNormalized === "luxury"
+      ? "Premium Conversion Mode"
+      : toneNormalized === "casual"
+        ? "Human-Friendly Story Mode"
+        : "Performance Landing Mode";
 
-      <div className="relative z-10">
-        {plan.sections.map((section) => renderSection(section, theme))}
-      </div>
-    </div>
-  );
+  const renderSectionFlow = (parts: {
+    hero: ReactNode;
+    metrics: ReactNode;
+    benefits: ReactNode;
+    gallery: ReactNode;
+    testimonials: ReactNode;
+    keywords: ReactNode;
+    cta: ReactNode;
+  }) => {
+    if (layoutVariant === 1) {
+      return (
+        <>
+          {parts.hero}
+          {parts.benefits}
+          {parts.testimonials}
+          {parts.metrics}
+          {parts.gallery}
+          {parts.keywords}
+          {parts.cta}
+        </>
+      );
+    }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => setFullScreen(true)}
-          className="px-4 py-2 rounded-xl border border-white/20 bg-white/5 text-sm text-white hover:bg-white/10 transition"
-        >
-          Open Full Screen Preview
-        </button>
-      </div>
+    if (layoutVariant === 2) {
+      return (
+        <>
+          {parts.hero}
+          {parts.gallery}
+          {parts.metrics}
+          {parts.benefits}
+          {parts.keywords}
+          {parts.testimonials}
+          {parts.cta}
+        </>
+      );
+    }
 
-      {preview}
+    return (
+      <>
+        {parts.hero}
+        {parts.metrics}
+        {parts.benefits}
+        {parts.gallery}
+        {parts.testimonials}
+        {parts.keywords}
+        {parts.cta}
+      </>
+    );
+  };
 
-      {fullScreen && (
-        <div className="fixed inset-0 z-[90] bg-black/90 p-3 md:p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setFullScreen(false)}
-                className="px-4 py-2 rounded-xl border border-white/30 bg-white/10 text-white hover:bg-white/20 transition"
-              >
-                Close Preview
-              </button>
+  const renderHero = (badge: string, badgeTone: string) => (
+    <section className="relative overflow-hidden px-6 py-24">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(255,255,255,0.1),transparent_34%),radial-gradient(circle_at_100%_95%,rgba(255,255,255,0.08),transparent_42%)]" />
+      <div className="relative mx-auto max-w-6xl">
+        {layoutVariant === 0 && (
+          <div className="grid items-center gap-10 md:grid-cols-2">
+            <div>
+              <Badge text={badge} tint={badgeTone} />
+              <p className="mb-3 text-xs uppercase tracking-[0.18em] text-white/70">{toneBadgeText}</p>
+              <h1 className={`mb-6 bg-linear-to-r ${colors.primary} bg-clip-text text-5xl font-black leading-[1.05] text-transparent md:text-6xl`}>
+                {headline}
+              </h1>
+              <p className="mb-8 text-lg text-slate-200">{subheadline}</p>
+              <div className="flex flex-wrap gap-4">
+                <button className={`rounded-xl bg-linear-to-r ${colors.primary} px-8 py-4 font-semibold text-white shadow-xl transition duration-300 hover:scale-[1.03]`}>
+                  {cta}
+                </button>
+                <button className="rounded-xl border border-white/20 bg-white/5 px-8 py-4 font-semibold text-slate-100 transition hover:bg-white/10">
+                  View Details
+                </button>
+              </div>
             </div>
-            <div className="min-h-[calc(100vh-7rem)]">{preview}</div>
+            <PlaceholderImage hint={heroImage.hint} bg={heroImage.bg} label="Hero Visual" sources={heroVisual.sources} alt={heroVisual.alt} minHeightClass="h-80" />
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
 
-function renderSection(section: PageBlock, theme: Theme) {
-  switch (section.type) {
-    case "hero":
-      return renderHero(section, theme);
-    case "signalPanel":
-      return renderSignalPanel(section, theme);
-    case "benefitGrid":
-      return renderBenefitGrid(section, theme);
-    case "testimonialRail":
-      return renderTestimonialRail(section, theme);
-    case "faq":
-      return renderFaq(section, theme);
-    case "cta":
-      return renderCta(section, theme);
-    case "contact":
-      return renderContact(section, theme);
-    case "gallery":
-      return renderGallery(section, theme);
-    case "trustBand":
-      return renderTrustBand(section, theme);
-    case "servicePath":
-      return renderServicePath(section, theme);
-    default:
-      return null;
-  }
-}
-
-function renderHero(section: Extract<PageBlock, { type: "hero" }>, theme: Theme) {
-  return (
-    <section className={`relative z-10 p-8 md:p-12 ${theme.hero}`}>
-      <div className={`grid gap-8 ${section.layout === "split" ? "md:grid-cols-[1.1fr_0.9fr]" : ""} items-center`}>
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] mb-3 text-white/70">{section.kicker}</p>
-          <h1 className={`text-3xl md:text-5xl leading-tight font-black mb-4 ${theme.title}`}>{section.title}</h1>
-          <p className={`max-w-2xl text-base md:text-lg mb-6 ${theme.subtitle}`}>{section.subtitle}</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <button className={`px-6 py-3 rounded-full text-sm md:text-base font-bold transition ${theme.ctaPrimary}`}>
-              {section.cta}
-            </button>
-            <button className={`px-5 py-3 rounded-full text-sm md:text-base font-semibold transition ${theme.ctaSecondary}`}>
-              {section.secondaryCta}
-            </button>
+        {layoutVariant === 1 && (
+          <div className="space-y-8">
+            <div className="mx-auto max-w-4xl text-center">
+              <Badge text={badge} tint={badgeTone} />
+              <p className="mb-3 text-xs uppercase tracking-[0.18em] text-white/70">{toneBadgeText}</p>
+              <h1 className={`mb-6 bg-linear-to-r ${colors.primary} bg-clip-text text-5xl font-black leading-[1.05] text-transparent md:text-7xl`}>
+                {headline}
+              </h1>
+              <p className="mx-auto mb-8 max-w-2xl text-lg text-slate-200">{subheadline}</p>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <button className={`rounded-xl bg-linear-to-r ${colors.primary} px-8 py-4 font-semibold text-white shadow-xl transition duration-300 hover:scale-[1.03]`}>
+                  {cta}
+                </button>
+                <button className="rounded-xl border border-white/20 bg-white/5 px-8 py-4 font-semibold text-slate-100 transition hover:bg-white/10">
+                  View Details
+                </button>
+              </div>
+            </div>
+            <PlaceholderImage hint={heroImage.hint} bg={heroImage.bg} label="Brand Visual" sources={heroVisual.sources} alt={heroVisual.alt} minHeightClass="h-96" />
           </div>
-        </div>
-        {section.layout !== "center" && (
-          <div className={`rounded-3xl p-5 ${theme.card}`}>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60 mb-3">Visual Direction</p>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 min-h-[220px] flex items-end justify-start">
-              <p className="max-w-sm text-sm text-white/80">{section.mediaHint}</p>
+        )}
+
+        {layoutVariant === 2 && (
+          <div className="grid items-center gap-10 md:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <PlaceholderImage hint={heroImage.hint} bg={heroImage.bg} label="Hero Visual" sources={heroVisual.sources} alt={heroVisual.alt} minHeightClass="h-80" fit="contain" />
+            </div>
+            <div>
+              <Badge text={badge} tint={badgeTone} />
+              <p className="mb-3 text-xs uppercase tracking-[0.18em] text-white/70">{toneBadgeText}</p>
+              <h1 className={`mb-6 bg-linear-to-r ${colors.primary} bg-clip-text text-5xl font-black leading-[1.05] text-transparent md:text-6xl`}>
+                {headline}
+              </h1>
+              <p className="mb-8 text-lg text-slate-200">{subheadline}</p>
+              <div className="flex flex-wrap gap-4">
+                <button className={`rounded-xl bg-linear-to-r ${colors.primary} px-8 py-4 font-semibold text-white shadow-xl transition duration-300 hover:scale-[1.03]`}>
+                  {cta}
+                </button>
+                <button className="rounded-xl border border-white/20 bg-white/5 px-8 py-4 font-semibold text-slate-100 transition hover:bg-white/10">
+                  View Details
+                </button>
+              </div>
             </div>
           </div>
         )}
       </div>
     </section>
   );
-}
 
-function renderSignalPanel(section: Extract<PageBlock, { type: "signalPanel" }>, theme: Theme) {
-  return (
-    <section className="relative z-10 p-6 md:p-8">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className="grid md:grid-cols-3 gap-4">
-        {section.items.map((item) => (
-          <div key={`${item.label}-${item.value}`} className={`p-5 rounded-2xl ${theme.card}`}>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60 mb-2">{item.label}</p>
-            <p className="text-3xl font-black">{item.value}</p>
+  const renderMetrics = (tone: string) => (
+    <section className="px-6 pb-14">
+      <div className={`mx-auto max-w-6xl gap-5 ${layoutVariant === 2 ? "flex flex-col md:flex-row" : "grid md:grid-cols-3"}`}>
+        {selectedMetrics.map((item) => {
+          const Icon = item.icon;
+          return (
+            <article key={item.label} className={`rounded-2xl border ${tone} bg-slate-900/55 p-6 transition hover:-translate-y-1 ${layoutVariant === 2 ? "md:flex-1" : ""}`}>
+              <div className="mb-4 inline-flex rounded-lg bg-white/10 p-2 text-white">
+                <Icon />
+              </div>
+              <p className="text-3xl font-black">{item.value}</p>
+              <p className="mt-2 text-slate-300">{item.label}</p>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  const renderBenefits = (title: string, subtitle: string, tone: string, icon: ReactNode) => (
+    benefits.length > 0 && (
+      <section className="bg-slate-900/30 px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <SectionTitle title={title} subtitle={subtitle} />
+          <div className={`grid gap-6 ${benefitColumns}`}>
+            {benefits.slice(0, 6).map((benefit: string, idx: number) => {
+              const benefitIntent = buildImageIntentKeywords({
+                industry,
+                section: "gallery",
+                tone,
+                headline: benefit,
+                keywords,
+                benefits,
+                painPoints,
+              });
+              const benefitVisual = getOpenImageSources(
+                industry,
+                "gallery",
+                `${contextSeed}-benefit-${idx}-${benefit}`,
+                benefitIntent,
+              );
+
+              return (
+              <article key={idx} className={`rounded-2xl border ${tone} bg-slate-900/55 p-6 transition hover:-translate-y-1 hover:shadow-xl`}>
+                <div className="mb-4 overflow-hidden rounded-xl border border-white/10">
+                  <SmartImage
+                    sources={benefitVisual.sources}
+                    alt={`${industry} benefit visual`}
+                    className="h-28 w-full object-cover"
+                  />
+                </div>
+                <div className="mb-4 inline-flex rounded-lg bg-white/10 p-2 text-white">{icon}</div>
+                <p className="text-slate-100">{benefit}</p>
+              </article>
+              );
+            })}
           </div>
-        ))}
-      </div>
-    </section>
+        </div>
+      </section>
+    )
   );
-}
 
-function renderBenefitGrid(section: Extract<PageBlock, { type: "benefitGrid" }>, theme: Theme) {
-  return (
-    <section id="benefits" className="relative z-10 px-6 md:px-8 pb-6">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className={`grid gap-4 ${section.columns === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
-        {section.items.map((item) => (
-          <article key={item.title} className={`p-5 rounded-2xl ${theme.card}`}>
-            <p className="font-semibold text-lg mb-2">{item.title}</p>
-            <p className="text-sm text-white/75">{item.description}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function renderTestimonialRail(section: Extract<PageBlock, { type: "testimonialRail" }>, theme: Theme) {
-  return (
-    <section id="proof" className="relative z-10 px-6 md:px-8 pb-6">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className={section.layout === "grid" ? "grid md:grid-cols-2 gap-4" : "grid md:grid-cols-3 gap-4"}>
-        {section.items.map((item) => (
-          <div key={`${item.author}-${item.quote}`} className={`p-5 rounded-2xl ${theme.card}`}>
-            <p className="mb-3 leading-relaxed">&quot;{item.quote}&quot;</p>
-            <p className="text-sm text-white/70">- {item.author}</p>
+  const renderTestimonials = (title: string, subtitle: string, cols: string) => (
+    testimonials.length > 0 && (
+      <section className="px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <SectionTitle title={title} subtitle={subtitle} />
+          <div className={`grid gap-6 ${cols}`}>
+            {testimonials.slice(0, 4).map((t: any, idx: number) => (
+              <TestimonialCard key={idx} t={t} accent={accent} />
+            ))}
           </div>
-        ))}
+        </div>
+      </section>
+    )
+  );
+
+  const renderKeywords = (tone: string) => (
+    keywords.length > 0 && (
+      <section className="px-6 pb-14">
+        <div className="mx-auto max-w-6xl">
+          <h3 className="mb-5 text-center text-xl font-semibold text-slate-200">Top Keyword Cluster</h3>
+          <div className="flex flex-wrap justify-center gap-3">
+            {keywords.slice(0, 8).map((keyword: string, idx: number) => (
+              <div key={idx} className={`cursor-default rounded-full border ${tone} px-4 py-2 text-sm font-medium`}>
+                {keyword}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  );
+
+  const renderGallery = () => (
+    <section className="px-6 py-16">
+      <div className={`mx-auto grid max-w-6xl gap-6 ${layoutVariant === 1 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+        <PlaceholderImage hint={galleryImage.hint} bg={galleryImage.bg} label="Gallery" sources={galleryVisual.sources} alt={galleryVisual.alt} minHeightClass={layoutVariant === 0 ? "h-80" : "h-72"} />
+        <PlaceholderImage hint={teamImage.hint} bg={teamImage.bg} label="Team" sources={teamVisual.sources} alt={teamVisual.alt} minHeightClass={layoutVariant === 2 ? "h-80" : "h-72"} fit={layoutVariant === 2 ? "contain" : "cover"} />
+        {layoutVariant !== 1 && (
+          <PlaceholderImage hint="Campaign-ready composition" bg="from-slate-500/30 to-slate-700/30" label="Creative" sources={creativeVisual.sources} alt={creativeVisual.alt} minHeightClass="h-72" fit="contain" />
+        )}
       </div>
     </section>
   );
-}
 
-function renderFaq(section: Extract<PageBlock, { type: "faq" }>, theme: Theme) {
-  return (
-    <section className="relative z-10 px-6 md:px-8 pb-6">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className="grid gap-3">
-        {section.items.map((item) => (
-          <details key={item.q} className={`p-4 rounded-2xl ${theme.card}`}>
-            <summary className="cursor-pointer font-semibold">{item.q}</summary>
-            <p className="mt-3 text-sm text-white/75">{item.a}</p>
-          </details>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function renderCta(section: Extract<PageBlock, { type: "cta" }>, theme: Theme) {
-  return (
-    <section id="action" className="relative z-10 px-6 md:px-8 pb-8 md:pb-10">
-      <div className={`p-6 md:p-8 rounded-3xl ${theme.card}`}>
-        <h3 className={`text-2xl font-bold mb-2 ${theme.sectionTitle}`}>{section.title}</h3>
-        <p className="text-sm text-white/75 mb-4">{section.description}</p>
-        <button className={`px-6 py-3 rounded-full font-semibold transition ${theme.ctaPrimary}`}>
-          {section.cta}
+  const renderCta = (title: string, subtitle: string, btnColor: string, btnText: string) => (
+    <section className={`bg-linear-to-r ${colors.secondary} px-6 py-24`}>
+      <div className="mx-auto max-w-4xl text-center">
+        <h2 className="mb-5 text-4xl font-black md:text-5xl">{title}</h2>
+        <p className="mx-auto mb-10 max-w-2xl text-lg text-slate-100">{subtitle}</p>
+        <button className={`rounded-xl bg-white px-10 py-4 text-lg font-bold ${btnColor} transition hover:scale-[1.03] hover:shadow-2xl`}>
+          {btnText}
         </button>
       </div>
     </section>
   );
-}
 
-function renderContact(section: Extract<PageBlock, { type: "contact" }>, theme: Theme) {
-  return (
-    <section id="action" className="relative z-10 px-6 md:px-8 pb-8 md:pb-10">
-      <div className={`p-6 md:p-8 rounded-3xl ${theme.card}`}>
-        <h3 className={`text-2xl font-bold mb-2 ${theme.sectionTitle}`}>{section.title}</h3>
-        <p className="text-sm text-white/75 mb-4">{section.description}</p>
-        <form
-          className="grid md:grid-cols-[1fr_auto] gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            alert("Demo form captured. Connect this to your backend lead endpoint.");
-          }}
+  const PreviewContent = (
+    <div className={`min-h-screen w-full bg-linear-to-b ${colors.bg} text-white`}>
+      {industry === "healthcare" && (
+        renderSectionFlow({
+          hero: renderHero("Precision Care Studio", "border-cyan-400/30 bg-cyan-500/15 text-cyan-200"),
+          metrics: renderMetrics("border-cyan-300/25"),
+          benefits: renderBenefits(
+            "Why Patients Convert Fast",
+            "Stronger trust architecture, cleaner messaging hierarchy, and premium clarity.",
+            "border-cyan-300/25",
+            <CheckIcon />,
+          ),
+          gallery: renderGallery(),
+          testimonials: renderTestimonials(
+            "Trusted By Real Patients",
+            "Conversion-focused trust wall with richer testimonial cards.",
+            "md:grid-cols-2",
+          ),
+          keywords: renderKeywords("border-cyan-300/35 bg-cyan-500/10 text-cyan-200"),
+          cta: renderCta("Ready for Expert Care?", "This output now feels like a polished premium landing page.", "text-cyan-700", cta),
+        })
+      )}
+
+      {industry === "fashion" && (
+        renderSectionFlow({
+          hero: renderHero("Editorial Commerce", "border-pink-300/30 bg-pink-500/15 text-pink-200"),
+          metrics: renderMetrics("border-pink-300/25"),
+          benefits: renderBenefits(
+            "Why Fashion Buyers Convert",
+            "Campaign-like structure, sharper visual rhythm, premium feel.",
+            "border-pink-300/25",
+            <SparklesIcon />,
+          ),
+          gallery: renderGallery(),
+          testimonials: renderTestimonials(
+            "Style-Led Social Proof",
+            "Testimonials now read like campaign proof, not plain cards.",
+            "md:grid-cols-3",
+          ),
+          keywords: renderKeywords("border-pink-300/35 bg-pink-500/10 text-pink-200"),
+          cta: renderCta("New Collection Live", "Landing structure now feels bold, intentional, and sales-ready.", "text-rose-600", "Shop The Drop"),
+        })
+      )}
+
+      {industry === "saas" && (
+        renderSectionFlow({
+          hero: renderHero("Pipeline Automation", "border-indigo-300/30 bg-indigo-500/15 text-indigo-200"),
+          metrics: renderMetrics("border-indigo-300/25"),
+          benefits: renderBenefits(
+            "Feature System",
+            "From headline to CTA, this is now product-grade SaaS storytelling.",
+            "border-indigo-300/25",
+            <ShieldIcon />,
+          ),
+          gallery: renderGallery(),
+          testimonials: renderTestimonials(
+            "Teams Already Scaling",
+            "Enterprise-ready social proof flow with tighter hierarchy.",
+            "md:grid-cols-2",
+          ),
+          keywords: renderKeywords("border-indigo-300/35 bg-indigo-500/10 text-indigo-200"),
+          cta: renderCta("From Feedback To Pipeline Growth", "Generator output now feels stronger, cleaner, and conversion-first.", "text-indigo-700", "Launch Workspace"),
+        })
+      )}
+
+      {(industry === "ecommerce" || !["healthcare", "fashion", "saas"].includes(industry)) && (
+        renderSectionFlow({
+          hero: renderHero("High-Intent Commerce", "border-orange-300/30 bg-orange-500/15 text-orange-200"),
+          metrics: renderMetrics("border-orange-300/25"),
+          benefits: renderBenefits(
+            "Conversion Drivers",
+            "More depth, stronger scannability, and campaign-ready composition.",
+            "border-orange-300/25",
+            <SparklesIcon />,
+          ),
+          gallery: renderGallery(),
+          testimonials: renderTestimonials(
+            "Social Proof Stack",
+            "Trust section now matches premium ecommerce landing pages.",
+            "md:grid-cols-2",
+          ),
+          keywords: renderKeywords("border-orange-300/35 bg-orange-500/10 text-orange-200"),
+          cta: renderCta(
+            "Built To Convert On First Scroll",
+            "Generator now outputs a much higher quality commerce page by default.",
+            "text-orange-700",
+            "Shop Now",
+          ),
+        })
+      )}
+    </div>
+  );
+
+  if (fullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
+        <button
+          onClick={() => setFullscreen(false)}
+          className="fixed right-4 top-4 z-60 rounded bg-linear-to-r from-purple-500 to-blue-500 px-4 py-2 font-semibold transition hover:from-purple-600 hover:to-blue-600"
         >
-          <input
-            type="email"
-            required
-            placeholder="Enter your email"
-            className={`w-full px-4 py-3 rounded-xl outline-none ring-1 ring-transparent ${theme.input} ${theme.ring}`}
-          />
-          <button type="submit" className={`px-5 py-3 rounded-xl font-semibold transition ${theme.ctaPrimary}`}>
-            {section.cta}
-          </button>
-        </form>
+          Exit Fullscreen (ESC)
+        </button>
+        {PreviewContent}
       </div>
-    </section>
-  );
-}
+    );
+  }
 
-function renderGallery(section: Extract<PageBlock, { type: "gallery" }>, theme: Theme) {
   return (
-    <section className="relative z-10 px-6 md:px-8 pb-6">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className="grid md:grid-cols-3 gap-4">
-        {section.items.map((item, index) => (
-          <article key={`${item.label}-${index}`} className={`p-4 rounded-2xl ${theme.card}`}>
-            <div className="h-40 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 mb-4 flex items-end p-4">
-              <span className="text-xs uppercase tracking-[0.16em] text-white/70">Visual Placeholder</span>
-            </div>
-            <p className="font-semibold mb-1">{item.label}</p>
-            <p className="text-sm text-white/75">{item.note}</p>
-          </article>
-        ))}
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">Landing Page Preview</h2>
+          <p className="mt-1 text-xs text-slate-400">Design: {industry}</p>
+        </div>
+        <button
+          onClick={() => setFullscreen(true)}
+          className="rounded bg-purple-500 px-3 py-1 text-sm font-semibold transition hover:bg-purple-600"
+        >
+          Fullscreen
+        </button>
       </div>
-    </section>
-  );
-}
 
-function renderTrustBand(section: Extract<PageBlock, { type: "trustBand" }>, theme: Theme) {
-  return (
-    <section className="relative z-10 px-6 md:px-8 pb-6">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className="grid md:grid-cols-3 gap-4">
-        {section.items.map((item) => (
-          <div key={item.label} className={`p-5 rounded-2xl ${theme.card}`}>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/60 mb-2">{item.label}</p>
-            <p className="text-lg font-semibold">{item.value}</p>
-          </div>
-        ))}
+      <div className="max-h-125 w-full overflow-y-auto rounded-lg border border-white/10 bg-slate-900">
+        {PreviewContent}
       </div>
-    </section>
-  );
-}
-
-function renderServicePath(section: Extract<PageBlock, { type: "servicePath" }>, theme: Theme) {
-  return (
-    <section className="relative z-10 px-6 md:px-8 pb-6">
-      <h2 className={`text-2xl font-bold mb-4 ${theme.sectionTitle}`}>{section.title}</h2>
-      <div className="grid gap-3">
-        {section.items.map((item, index) => (
-          <div key={`${item.title}-${index}`} className={`p-5 rounded-2xl ${theme.card}`}>
-            <p className="font-semibold mb-2">{item.title}</p>
-            <p className="text-sm text-white/75">{item.description}</p>
-          </div>
-        ))}
-      </div>
-    </section>
+    </div>
   );
 }

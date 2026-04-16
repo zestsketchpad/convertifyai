@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildPrompt } from "@/lib/prompt";
 import { setDefaultResultOrder } from "node:dns";
-import { buildPagePlan } from "@/lib/page-plan";
-import {
-  buildReviewModelContext,
-  HARD_MAX_REVIEW_INPUT_CHARS,
-  MAX_REVIEW_INPUT_CHARS,
-  sanitizeReviewInput,
-  truncateReviewInput,
-} from "@/lib/review-input";
 
 export const runtime = "nodejs";
 
@@ -36,8 +28,7 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => null)) as GenerateRequestBody | null;
-  const reviewsRaw = typeof body?.reviews === "string" ? body.reviews : "";
-  const reviews = sanitizeReviewInput(reviewsRaw);
+  const reviews = typeof body?.reviews === "string" ? body.reviews.trim() : "";
   const tone =
     typeof body?.tone === "string" && body.tone.trim()
       ? body.tone.trim()
@@ -50,21 +41,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (reviews.length > HARD_MAX_REVIEW_INPUT_CHARS) {
-    return NextResponse.json(
-      {
-        error: "Input is too large for the current AI plan.",
-        code: "INPUT_TOO_LARGE",
-        hint: `Keep your reviews under ${MAX_REVIEW_INPUT_CHARS} characters or split into smaller batches.`,
-      },
-      { status: 400 },
-    );
-  }
-
-  const truncatedReviews = truncateReviewInput(reviews, MAX_REVIEW_INPUT_CHARS);
-
-  const reviewContext = buildReviewModelContext(truncatedReviews.value);
-  const prompt = buildPrompt(reviewContext.cleanForPrompt, tone);
+  const prompt = buildPrompt(reviews, tone);
 
   try {
     const url =
@@ -97,26 +74,6 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       const details = await res.text().catch(() => "");
-
-      const parsed = parseGroqError(details);
-      const isRateLimited =
-        res.status === 429 || parsed.code === "rate_limit_exceeded";
-
-      if (isRateLimited) {
-        return NextResponse.json(
-          {
-            error: "Input is too large for the current AI plan.",
-            code: "RATE_LIMIT_EXCEEDED",
-            hint: `Keep reviews under ${MAX_REVIEW_INPUT_CHARS} characters or split into batches.`,
-            details:
-              parsed.message ||
-              details.slice(0, 4000) ||
-              "Groq rejected the request due to token limits.",
-          },
-          { status: 429 },
-        );
-      }
-
       return NextResponse.json(
         {
           error: "Groq request failed",
@@ -127,13 +84,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const payload = (await res.json().catch(() => null)) as {
-      choices?: Array<{
-        message?: {
-          content?: unknown;
-        };
-      }>;
-    } | null;
+    const payload = (await res.json().catch(() => null)) as any;
     const content = payload?.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
       return NextResponse.json(
@@ -154,9 +105,7 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(
-      normalizeGeneratedPayload(parsed.value, reviewContext.cleanForAnalysis),
-    );
+    return NextResponse.json(normalizeGeneratedPayload(parsed.value, reviews));
   } catch (error) {
     const info = getNetworkErrorInfo(error);
     if (info.code === "UND_ERR_CONNECT_TIMEOUT" || info.code === "TIMEOUT") {
@@ -183,27 +132,6 @@ export async function POST(req: Request) {
 
     console.error(error);
     return NextResponse.json({ error: "Failed to generate" }, { status: 500 });
-  }
-}
-
-function parseGroqError(text: string): { message?: string; code?: string } {
-  if (!text) return {};
-
-  try {
-    const parsed = JSON.parse(text) as {
-      error?: {
-        message?: unknown;
-        code?: unknown;
-      };
-    };
-
-    const message =
-      typeof parsed?.error?.message === "string" ? parsed.error.message : undefined;
-    const code = typeof parsed?.error?.code === "string" ? parsed.error.code : undefined;
-
-    return { message, code };
-  } catch {
-    return {};
   }
 }
 
@@ -243,11 +171,7 @@ function isRetryableNetworkError(error: unknown) {
 function getNetworkErrorInfo(error: unknown): { code?: string } {
   if (!error || typeof error !== "object") return {};
 
-  const anyErr = error as {
-    code?: unknown;
-    name?: unknown;
-    cause?: { code?: unknown };
-  };
+  const anyErr = error as any;
   const code =
     (typeof anyErr?.cause?.code === "string" ? anyErr.cause.code : undefined) ||
     (typeof anyErr?.code === "string" ? anyErr.code : undefined);
@@ -315,8 +239,7 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
 
   const painPoints = toStringArray(obj.painPoints);
   let benefits = toStringArray(obj.benefits);
-  const rawKeywords = toStringArray(obj.keywords);
-  const keywords = sanitizeKeywords(rawKeywords, reviews);
+  const keywords = toStringArray(obj.keywords);
 
   const topProblem = typeof obj.topProblem === "string" ? obj.topProblem.trim() : "";
   const recommendation =
@@ -356,15 +279,6 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
     benefits: landingBenefits,
     cta: toNonEmptyString(landingObj.cta, legacyCta),
   };
-
-  const designObj =
-    obj.design && typeof obj.design === "object"
-      ? (obj.design as Record<string, unknown>)
-      : {};
-
-  const layoutStyle = toEnumValue(designObj.layoutStyle, ["story", "trust", "offer"]);
-  const vibe = toEnumValue(designObj.vibe, ["bold", "premium", "friendly"]);
-  const urgency = toEnumValue(designObj.urgency, ["low", "medium", "high"]);
 
   const testimonialsRaw = Array.isArray(obj.testimonials) ? obj.testimonials : [];
   const testimonials = testimonialsRaw
@@ -420,35 +334,8 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
     recommendation: finalRecommendation,
     scores,
     landing,
-    design: {
-      layoutStyle,
-      vibe,
-      urgency,
-    },
-    pagePlan: buildPagePlan({
-      headline: landing.headline,
-      subheadline: landing.subheadline,
-      cta: landing.cta,
-      recommendation: finalRecommendation,
-      benefits,
-      keywords,
-      painPoints: finalPainPoints,
-      testimonials,
-      scores,
-      design: {
-        layoutStyle,
-        vibe,
-        urgency,
-      },
-    }),
     testimonials,
   };
-}
-
-function toEnumValue<T extends string>(value: unknown, options: T[]): T | undefined {
-  if (typeof value !== "string") return undefined;
-  const normalized = value.trim().toLowerCase() as T;
-  return options.includes(normalized) ? normalized : undefined;
 }
 
 function toStringArray(value: unknown): string[] {
@@ -484,54 +371,10 @@ function normalizeTestimonial(value: unknown) {
     (typeof obj.text === "string" ? obj.text : "");
 
   const finalName = name.trim();
-  const finalReview = normalizeReviewText(review);
+  const finalReview = review.trim();
   if (!finalReview) return null;
 
   return { name: finalName || "Anonymous", review: finalReview };
-}
-
-function normalizeReviewText(value: string) {
-  return value
-    .replace(/\s*\.\.\.|\s*…/g, "")
-    .replace(/\bopd\s*\d+\b/gi, "")
-    .replace(/\bbed\s*number\s*\d+\b/gi, "")
-    .replace(/\b\d{3,}\b/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function sanitizeKeywords(keywords: string[], reviews: string) {
-  const reviewText = reviews.toLowerCase();
-  const cleaned = keywords
-    .map((keyword) => keyword.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .filter((keyword) => keyword.length >= 3)
-    .filter((keyword) => !/\d{2,}/.test(keyword))
-    .filter((keyword) => !isLikelyPersonName(keyword))
-    .filter((keyword) => reviewText.includes(keyword.toLowerCase()));
-
-  return uniqueStrings(cleaned).slice(0, 8);
-}
-
-function isLikelyPersonName(value: string) {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0 || words.length > 3) return false;
-
-  const allCapitalized = words.every((word) => /^[A-Z][a-z]+$/.test(word));
-  if (!allCapitalized) return false;
-
-  const nonNameKeywords = new Set([
-    "Apollo",
-    "Clinic",
-    "Hospital",
-    "Center",
-    "Service",
-    "Care",
-    "Health",
-  ]);
-
-  const matchesNonName = words.some((word) => nonNameKeywords.has(word));
-  return !matchesNonName;
 }
 
 function buildStrengthsRecommendation(
@@ -646,23 +489,6 @@ function containsNegativeSignal(text: string) {
     "rude",
     "disappointed",
     "waste",
-    "not satisfied",
-    "not happy",
-    "poor",
-    "complaint",
-    "couldn't",
-    "could not",
-    "didn't",
-    "did not",
-    "no body will pay",
-    "too high",
-    "high price",
-    "overcharged",
-    "without notice",
-    "didn't treat",
-    "finished the call",
-    "waiting time",
-    "long wait",
   ].some((needle) => t.includes(needle));
 }
 

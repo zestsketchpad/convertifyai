@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toFriendlyAuthError } from "@/lib/auth-errors";
-import { getAuthCallbackUrl } from "@/lib/auth-redirect";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,9 +42,6 @@ export default function RegisterPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: getAuthCallbackUrl(),
-      },
     });
 
     if (signUpError) {
@@ -72,7 +68,7 @@ export default function RegisterPage() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: getAuthCallbackUrl(),
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
