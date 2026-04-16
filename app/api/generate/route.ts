@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildPrompt } from "@/lib/prompt";
 import { setDefaultResultOrder } from "node:dns";
+import { buildPagePlan } from "@/lib/page-plan";
 import {
   buildReviewModelContext,
   HARD_MAX_REVIEW_INPUT_CHARS,
@@ -424,6 +425,22 @@ function normalizeGeneratedPayload(value: unknown, reviews: string) {
       vibe,
       urgency,
     },
+    pagePlan: buildPagePlan({
+      headline: landing.headline,
+      subheadline: landing.subheadline,
+      cta: landing.cta,
+      recommendation: finalRecommendation,
+      benefits,
+      keywords,
+      painPoints: finalPainPoints,
+      testimonials,
+      scores,
+      design: {
+        layoutStyle,
+        vibe,
+        urgency,
+      },
+    }),
     testimonials,
   };
 }

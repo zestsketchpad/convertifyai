@@ -1,3 +1,5 @@
+import type { PagePlan } from "@/lib/page-plan";
+
 export type GeneratedScores = {
   conversion: number;
   clarity: number;
@@ -32,6 +34,7 @@ export type GeneratedPayload = {
   landing: GeneratedLanding;
   testimonials: GeneratedTestimonial[];
   design?: GeneratedDesignHints;
+  pagePlan?: PagePlan;
 };
 
 export type GenerateApiErrorBody = {
