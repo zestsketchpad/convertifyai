@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toFriendlyAuthError } from "@/lib/auth-errors";
+import { getAuthCallbackUrl } from "@/lib/auth-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function LoginPage() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthCallbackUrl(),
       },
     });
 
