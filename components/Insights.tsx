@@ -1,40 +1,63 @@
-export default function Insights({ data }: any) {
+import type { GeneratedPayload } from "@/lib/generated";
+
+type Props = {
+  data: GeneratedPayload | null;
+};
+
+export default function Insights({ data }: Props) {
+  const painPoints: string[] = Array.isArray(data?.painPoints) ? data.painPoints : [];
+  const benefits: string[] = Array.isArray(data?.benefits) ? data.benefits : [];
+  const keywords: string[] = Array.isArray(data?.keywords) ? data.keywords : [];
+
   return (
-    <div className="bg-gray-900 p-6 rounded-xl shadow mt-6">
-      <h2 className="text-xl font-bold mb-4">📊 Insights</h2>
+    <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)] hover:scale-[1.02] transition duration-300">
+      <h2 className="text-xl font-semibold mb-4">What Users Are Saying</h2>
 
-      {/* Pain Points */}
-      <div className="mb-4">
-        <h3 className="text-red-400 font-semibold mb-2">Pain Points</h3>
-        {data?.painPoints?.length ? (
-          data.painPoints.map((p: string, i: number) => (
-            <p key={i}>❌ {p}</p>
-          ))
-        ) : (
-          <p className="text-gray-500">No pain points found</p>
-        )}
-      </div>
+      <div className="grid md:grid-cols-3 gap-4">
+        <div>
+          <h3 className="font-medium mb-2 text-red-400">Pain Points</h3>
+          {painPoints.length === 0 ? (
+            <p className="text-sm text-gray-400">No major issues</p>
+          ) : (
+            <div className="space-y-1">
+              {painPoints.map((p: string, i: number) => (
+                <p key={i}>
+                  {"\u2022"} {p}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {/* Benefits */}
-      <div className="mb-4">
-        <h3 className="text-green-400 font-semibold mb-2">Benefits</h3>
-        {data?.benefits?.length ? (
-          data.benefits.map((b: string, i: number) => (
-            <p key={i}>✅ {b}</p>
-          ))
-        ) : (
-          <p className="text-gray-500">No benefits found</p>
-        )}
-      </div>
+        <div>
+          <h3 className="font-medium mb-2 text-green-400">Benefits</h3>
+          {benefits.length === 0 ? (
+            <p className="text-sm text-gray-400">No data available</p>
+          ) : (
+            <div className="space-y-1">
+              {benefits.map((b: string, i: number) => (
+                <p key={i}>
+                  {"\u2022"} {b}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {/* Keywords */}
-      <div>
-        <h3 className="text-blue-400 font-semibold mb-2">Keywords</h3>
-        {data?.keywords?.length ? (
-          <p>{data.keywords.join(", ")}</p>
-        ) : (
-          <p className="text-gray-500">No keywords</p>
-        )}
+        <div>
+          <h3 className="font-medium mb-2 text-blue-400">Keywords</h3>
+          {keywords.length === 0 ? (
+            <p className="text-sm text-gray-400">No data available</p>
+          ) : (
+            <div className="space-y-1">
+              {keywords.map((k: string, i: number) => (
+                <p key={i}>
+                  {"\u2022"} {k}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

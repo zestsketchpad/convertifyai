@@ -1,17 +1,33 @@
-export default function TopProblem({ data }: any) {
+import type { GeneratedPayload } from "@/lib/generated";
+
+type Props = {
+  data: GeneratedPayload | null;
+};
+
+export default function TopProblem({ data }: Props) {
+  const topProblem =
+    typeof data?.topProblem === "string" && data.topProblem.trim()
+      ? data.topProblem
+      : "No major issues found";
+
+  const recommendation =
+    typeof data?.recommendation === "string" && data.recommendation.trim()
+      ? data.recommendation
+      : "No recommendation available.";
+
   return (
-    <div className="bg-red-900/40 p-6 rounded-xl shadow mt-6 border border-red-700">
-      <h2 className="text-xl font-bold mb-2">🔥 Biggest Issue</h2>
+    <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)] hover:scale-[1.02] transition duration-300">
+      <h2 className="text-xl font-semibold mb-4">Biggest Conversion Blocker</h2>
 
-      <p className="text-lg">
-        {data?.topProblem || "No major issue detected"}
-      </p>
+      <div className="mb-4">
+        <p className="text-red-400 font-medium">Problem</p>
+        <p className="text-lg">{topProblem}</p>
+      </div>
 
-      <div className="mt-4">
-        <h3 className="text-green-400 font-semibold">💡 Recommendation</h3>
-        <p>
-          {data?.recommendation || "No recommendation available"}
-        </p>
+      <div>
+        <h3 className="text-sm text-gray-400 mb-2">How to Fix It</h3>
+        <p className="text-green-400 font-medium">Recommendation</p>
+        <p className="text-lg">{recommendation}</p>
       </div>
     </div>
   );

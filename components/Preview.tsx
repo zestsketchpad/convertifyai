@@ -1,103 +1,79 @@
-import { AIData } from "@/types";
+import type { GeneratedPayload } from "@/lib/generated";
 
 type Props = {
-  data?: AIData;
+  data: GeneratedPayload | null;
 };
 
 export default function Preview({ data }: Props) {
-  const headline = data?.headline ?? "Your Headline";
-  const subheadline = data?.subheadline ?? "Your subheadline";
-  const benefits = data?.benefits ?? [];
-  const painPoints = data?.painPoints ?? [];
-  const transformedPain = data?.transformedPain ?? [];
-  const testimonials = data?.testimonials ?? [];
-  const cta = data?.cta ?? "Get Started";
+  const landing = data?.landing;
+  const headline = landing?.headline ?? "";
+  const subheadline = landing?.subheadline ?? "";
+  const benefits: string[] = Array.isArray(landing?.benefits) ? landing.benefits : [];
+  const cta = landing?.cta ?? "";
+
+  const rawTestimonials: Array<{ name?: unknown; review?: unknown }> = Array.isArray(
+    data?.testimonials,
+  )
+    ? data.testimonials
+    : [];
+
+  const testimonials = rawTestimonials
+    .map((t) => ({
+      name:
+        typeof t?.name === "string" && t.name.trim() ? t.name.trim() : "Anonymous",
+      review: typeof t?.review === "string" ? t.review.trim() : "",
+    }))
+    .filter((t) => t.review.length > 0);
 
   return (
-    <div className="mt-10 space-y-16">
+    <div className="bg-white text-black rounded-2xl overflow-hidden">
+      <div className="p-12 text-center bg-gradient-to-br from-purple-600 via-blue-500 to-indigo-500 text-white">
+        <h1 className="text-4xl font-bold mb-3">{headline}</h1>
+        <p className="mb-6 opacity-90">{subheadline}</p>
 
-      {/* HERO */}
-      <section className="text-center py-20 bg-gradient-to-r from-purple-700 to-blue-600 rounded-xl">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          {headline}
-        </h1>
-
-        <p className="text-gray-200">{subheadline}</p>
-
-        <button className="mt-6 px-6 py-3 bg-black rounded">
+        <button className="bg-white text-black px-8 py-3 rounded-full font-semibold hover:scale-105 transition">
           {cta}
         </button>
-      </section>
+      </div>
 
-      {/* BENEFITS */}
-      <section>
-        <h2 className="text-2xl mb-6">Why Choose Us</h2>
+      <div className="p-8 grid md:grid-cols-3 gap-4">
+        {benefits.length === 0 ? (
+          <div className="md:col-span-3 p-5 border border-gray-200 rounded-xl bg-white/60">
+            <p className="text-gray-600 text-center">No benefits generated</p>
+          </div>
+        ) : (
+          benefits.map((b: string, i: number) => (
+            <div
+              key={i}
+              className="p-5 border border-gray-200 rounded-xl hover:scale-105 transition shadow-sm"
+            >
+              <p className="font-medium">{b}</p>
+            </div>
+          ))
+        )}
+      </div>
 
-        {benefits.length > 0 ? (
-          <div className="grid md:grid-cols-3 gap-6">
-            {benefits.map((b, i) => (
+      <div className="p-8 bg-gray-100">
+        <h2 className="text-xl font-semibold mb-4 text-center">What Users Say</h2>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {testimonials.length === 0 ? (
+            <div className="md:col-span-2 p-5 bg-white rounded-xl shadow-md">
+              <p className="text-gray-600 text-center">No testimonials generated</p>
+            </div>
+          ) : (
+            testimonials.map((t, i: number) => (
               <div
                 key={i}
-                className="bg-gray-900 p-6 rounded hover:scale-105 transition"
+                className="p-5 bg-white rounded-xl shadow-md hover:shadow-lg transition"
               >
-                {b}
+                <p className="mb-2">&quot;{t.review}&quot;</p>
+                <p className="text-sm text-gray-500">- {t.name}</p>
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">No benefits available</p>
-        )}
-      </section>
-
-      {/* PAIN → SOLUTION */}
-      <section>
-        <h2 className="text-2xl mb-6">We Fixed What You Hate</h2>
-
-        {painPoints.length > 0 ? (
-          <div className="grid md:grid-cols-2 gap-6">
-            {painPoints.map((p, i) => (
-              <div key={i} className="bg-gray-900 p-6 rounded">
-                <p className="text-red-400">❌ {p}</p>
-                <p className="text-green-400 mt-2">
-                  ✅ {transformedPain[i] ?? "Improved solution"}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">No issues found</p>
-        )}
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section>
-        <h2 className="text-2xl mb-6">What Users Say</h2>
-
-        {testimonials.length > 0 ? (
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <div
-                key={i}
-                className="bg-gray-900 p-6 rounded italic"
-              >
-                "{t}"
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">No testimonials available</p>
-        )}
-      </section>
-
-      {/* CTA */}
-      <section className="text-center py-16 bg-purple-700 rounded-xl">
-        <h2 className="text-2xl mb-4">Ready to Transform?</h2>
-
-        <button className="px-8 py-3 bg-black rounded">
-          {cta}
-        </button>
-      </section>
-
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
