@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { buildPrompt } from "@/lib/prompt";
 import { setDefaultResultOrder } from "node:dns";
+import {
+  HARD_MAX_REVIEW_INPUT_CHARS,
+  MAX_REVIEW_INPUT_CHARS,
+  sanitizeReviewInput,
+  truncateReviewInput,
+} from "@/lib/review-input";
 
 export const runtime = "nodejs";
 
@@ -28,7 +34,8 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => null)) as GenerateRequestBody | null;
-  const reviews = typeof body?.reviews === "string" ? body.reviews.trim() : "";
+  const reviewsRaw = typeof body?.reviews === "string" ? body.reviews : "";
+  const reviews = sanitizeReviewInput(reviewsRaw);
   const tone =
     typeof body?.tone === "string" && body.tone.trim()
       ? body.tone.trim()
@@ -41,7 +48,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const prompt = buildPrompt(reviews, tone);
+  if (reviews.length > HARD_MAX_REVIEW_INPUT_CHARS) {
+    return NextResponse.json(
+      {
+        error: "Input is too large for the current AI plan.",
+        code: "INPUT_TOO_LARGE",
+        hint: `Keep your reviews under ${MAX_REVIEW_INPUT_CHARS} characters or split into smaller batches.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const truncatedReviews = truncateReviewInput(reviews, MAX_REVIEW_INPUT_CHARS);
+
+  const prompt = buildPrompt(truncatedReviews.value, tone);
 
   try {
     const url =
@@ -74,6 +94,26 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       const details = await res.text().catch(() => "");
+
+      const parsed = parseGroqError(details);
+      const isRateLimited =
+        res.status === 429 || parsed.code === "rate_limit_exceeded";
+
+      if (isRateLimited) {
+        return NextResponse.json(
+          {
+            error: "Input is too large for the current AI plan.",
+            code: "RATE_LIMIT_EXCEEDED",
+            hint: `Keep reviews under ${MAX_REVIEW_INPUT_CHARS} characters or split into batches.`,
+            details:
+              parsed.message ||
+              details.slice(0, 4000) ||
+              "Groq rejected the request due to token limits.",
+          },
+          { status: 429 },
+        );
+      }
+
       return NextResponse.json(
         {
           error: "Groq request failed",
@@ -111,7 +151,9 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(normalizeGeneratedPayload(parsed.value, reviews));
+    return NextResponse.json(
+      normalizeGeneratedPayload(parsed.value, truncatedReviews.value),
+    );
   } catch (error) {
     const info = getNetworkErrorInfo(error);
     if (info.code === "UND_ERR_CONNECT_TIMEOUT" || info.code === "TIMEOUT") {
@@ -138,6 +180,27 @@ export async function POST(req: Request) {
 
     console.error(error);
     return NextResponse.json({ error: "Failed to generate" }, { status: 500 });
+  }
+}
+
+function parseGroqError(text: string): { message?: string; code?: string } {
+  if (!text) return {};
+
+  try {
+    const parsed = JSON.parse(text) as {
+      error?: {
+        message?: unknown;
+        code?: unknown;
+      };
+    };
+
+    const message =
+      typeof parsed?.error?.message === "string" ? parsed.error.message : undefined;
+    const code = typeof parsed?.error?.code === "string" ? parsed.error.code : undefined;
+
+    return { message, code };
+  } catch {
+    return {};
   }
 }
 

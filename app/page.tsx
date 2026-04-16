@@ -8,6 +8,7 @@ import Scores from "@/components/Scores";
 import Preview from "@/components/Preview";
 import type { GeneratedPayload, GenerateApiErrorBody } from "@/lib/generated";
 import { supabase } from "@/lib/supabase";
+import { MAX_REVIEW_INPUT_CHARS } from "@/lib/review-input";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -47,8 +48,17 @@ export default function Home() {
   };
 
   const handleGenerate = async () => {
-    if (!input.trim()) {
+    const cleanedInput = input.trim();
+
+    if (!cleanedInput) {
       setError("Paste some reviews first.");
+      return;
+    }
+
+    if (cleanedInput.length > MAX_REVIEW_INPUT_CHARS) {
+      setError(
+        `Your input is too long for the current AI limit. Keep it under ${MAX_REVIEW_INPUT_CHARS} characters or split into smaller batches.`,
+      );
       return;
     }
 
@@ -58,7 +68,7 @@ export default function Home() {
 
     try {
       const res = await axios.post("/api/generate", {
-        reviews: input,
+        reviews: cleanedInput,
         tone,
       });
       setData(res.data);
@@ -127,10 +137,25 @@ export default function Home() {
 
         <textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next.length <= MAX_REVIEW_INPUT_CHARS) {
+              setInput(next);
+              return;
+            }
+
+            setInput(next.slice(0, MAX_REVIEW_INPUT_CHARS));
+            setError(
+              `Input capped at ${MAX_REVIEW_INPUT_CHARS} characters for reliable generation.`,
+            );
+          }}
           placeholder="Paste user reviews here..."
           className="w-full max-w-2xl h-40 p-4 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] backdrop-blur-xl mb-4"
         />
+
+        <p className="w-full max-w-2xl -mt-2 mb-4 text-right text-xs text-gray-400">
+          {input.length}/{MAX_REVIEW_INPUT_CHARS}
+        </p>
 
         <div className="flex gap-3 mb-4">
           {["Professional", "Casual", "Luxury"].map((t) => (
