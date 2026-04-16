@@ -34,3 +34,31 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Supabase Auth Setup
+
+### Required environment variables
+
+Create `.env.local` with:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_or_publishable_key
+```
+
+### Enable Google provider (fixes "Unsupported provider: provider is not enabled")
+
+1. In Supabase Dashboard, open Authentication -> Providers -> Google.
+2. Toggle Google provider ON.
+3. In Google Cloud Console, create OAuth Client ID (Web application).
+4. Add this Authorized redirect URI in Google Cloud:
+	- `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`
+5. Copy Google Client ID and Client Secret into Supabase Google provider settings.
+6. In Supabase Dashboard, open Authentication -> URL Configuration.
+7. Set Site URL:
+	- Local: `http://localhost:3000`
+8. Add Redirect URLs:
+	- `http://localhost:3000/auth/callback`
+	- Your production callback, for example: `https://yourdomain.com/auth/callback`
+
+After saving settings, restart your dev server and try "Continue with Google" again.
