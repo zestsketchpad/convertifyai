@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 import { buildPrompt } from "@/lib/prompt";
+import { setDefaultResultOrder } from "node:dns";
+
+export const runtime = "nodejs";
+
+// Helps avoid IPv6-related connect timeouts on some networks.
+try {
+  setDefaultResultOrder("ipv4first");
+} catch {}
 
 type GenerateRequestBody = {
   reviews?: unknown;
@@ -36,25 +44,33 @@ export async function POST(req: Request) {
   const prompt = buildPrompt(reviews, tone);
 
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const url =
+      process.env.GROQ_API_URL?.trim() ||
+      "https://api.groq.com/openai/v1/chat/completions";
+
+    const res = await fetchWithRetry(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          temperature: 0.2,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You output ONLY valid JSON. No markdown. No code fences. Use double quotes and no trailing commas.",
+            },
+            { role: "user", content: prompt },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        temperature: 0.2,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You output ONLY valid JSON. No markdown. No code fences. Use double quotes and no trailing commas.",
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
+      { attempts: 2, timeoutMs: 20_000 },
+    );
 
     if (!res.ok) {
       const details = await res.text().catch(() => "");
@@ -91,9 +107,79 @@ export async function POST(req: Request) {
 
     return NextResponse.json(normalizeGeneratedPayload(parsed.value, reviews));
   } catch (error) {
+    const info = getNetworkErrorInfo(error);
+    if (info.code === "UND_ERR_CONNECT_TIMEOUT" || info.code === "TIMEOUT") {
+      return NextResponse.json(
+        {
+          error: "Could not reach Groq (connection timed out).",
+          code: info.code,
+          hint: "Check your internet/VPN/firewall and try again.",
+        },
+        { status: 504 },
+      );
+    }
+
+    if (info.code) {
+      return NextResponse.json(
+        {
+          error: "Could not reach Groq.",
+          code: info.code,
+          hint: "Check your internet/VPN/firewall and try again.",
+        },
+        { status: 502 },
+      );
+    }
+
     console.error(error);
     return NextResponse.json({ error: "Failed to generate" }, { status: 500 });
   }
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  options: { attempts: number; timeoutMs: number },
+) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= options.attempts; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(options.timeoutMs),
+      });
+      return res;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= options.attempts) throw error;
+      if (!isRetryableNetworkError(error)) throw error;
+      await delay(250 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableNetworkError(error: unknown) {
+  const info = getNetworkErrorInfo(error);
+  return info.code === "UND_ERR_CONNECT_TIMEOUT" || info.code === "TIMEOUT";
+}
+
+function getNetworkErrorInfo(error: unknown): { code?: string } {
+  if (!error || typeof error !== "object") return {};
+
+  const anyErr = error as any;
+  const code =
+    (typeof anyErr?.cause?.code === "string" ? anyErr.cause.code : undefined) ||
+    (typeof anyErr?.code === "string" ? anyErr.code : undefined);
+
+  // AbortSignal.timeout() throws a DOMException with name "TimeoutError".
+  if (!code && anyErr?.name === "TimeoutError") return { code: "TIMEOUT" };
+
+  return { code };
 }
 
 function safeParseJsonFromModel(text: string): SafeParseResult {

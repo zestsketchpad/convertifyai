@@ -38,7 +38,19 @@ export default function Home() {
             : typeof responseData === "string"
               ? responseData
               : err.message;
-        setError(message);
+        const code = typeof responseData?.code === "string" ? responseData.code : "";
+        const hint = typeof responseData?.hint === "string" ? responseData.hint : "";
+        const details =
+          typeof responseData?.details === "string" ? responseData.details : "";
+
+        const parts = [
+          message,
+          code ? `Code: ${code}` : "",
+          hint,
+          details,
+        ].filter(Boolean);
+
+        setError(parts.join("\n"));
       } else {
         setError("Request failed.");
       }
