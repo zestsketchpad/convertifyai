@@ -20,7 +20,7 @@ export default function RegisterPage() {
     const checkExistingSession = async () => {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
-        router.replace("/");
+        router.replace("/prompt");
       }
     };
 
@@ -51,7 +51,7 @@ export default function RegisterPage() {
     }
 
     if (data.session) {
-      router.replace("/");
+      router.replace("/prompt");
       router.refresh();
       return;
     }

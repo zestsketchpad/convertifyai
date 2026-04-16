@@ -27,7 +27,7 @@ export default function Preview({ data }: Props) {
 
   return (
     <div className="bg-white text-black rounded-2xl overflow-hidden">
-      <div className="p-12 text-center bg-gradient-to-br from-purple-600 via-blue-500 to-indigo-500 text-white">
+      <div className="p-12 text-center bg-linear-to-br from-purple-600 via-blue-500 to-indigo-500 text-white">
         <h1 className="text-4xl font-bold mb-3">{headline}</h1>
         <p className="mb-6 opacity-90">{subheadline}</p>
 

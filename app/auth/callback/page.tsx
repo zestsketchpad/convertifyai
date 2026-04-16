@@ -28,7 +28,7 @@ function AuthCallbackContent() {
         return;
       }
 
-      router.replace("/");
+      router.replace("/prompt");
       router.refresh();
     };
 

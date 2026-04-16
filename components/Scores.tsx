@@ -19,7 +19,7 @@ function Bar({ label, value }: { label: string; value: number }) {
       </div>
       <div className="w-full bg-white/10 rounded-full h-2">
         <div
-          className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-700"
+          className="bg-linear-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-700"
           style={{ width: `${value}%` }}
         />
       </div>
