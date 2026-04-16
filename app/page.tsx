@@ -1,6 +1,10 @@
 "use client";
 import { useState } from "react";
 import axios from "axios";
+import Insights from "@/components/Insights";
+import TopProblem from "@/components/TopProblem";
+import Scores from "@/components/Scores";
+import Preview from "@/components/Preview";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -85,9 +89,21 @@ export default function Home() {
       )}
 
       {data && (
-        <pre className="mt-8 w-full max-w-2xl bg-white/10 p-4 rounded-lg overflow-auto text-sm">
-          {JSON.stringify(data, null, 2)}
-        </pre>
+        <div className="mt-10 space-y-8 w-full max-w-4xl">
+          <Insights data={data} />
+          <TopProblem data={data} />
+          <Scores data={data} />
+          <Preview data={data} />
+
+          <details className="bg-white/5 p-4 rounded-xl border border-white/10">
+            <summary className="cursor-pointer text-sm text-gray-300">
+              View raw JSON
+            </summary>
+            <pre className="mt-3 overflow-auto text-xs text-gray-200">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </details>
+        </div>
       )}
     </main>
   );
