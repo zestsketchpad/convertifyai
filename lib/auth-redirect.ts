@@ -2,13 +2,44 @@ function normalizeBaseUrl(value: string) {
   return value.replace(/\/$/, "");
 }
 
-function getBaseUrl() {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (fromEnv) return normalizeBaseUrl(fromEnv);
-
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return normalizeBaseUrl(window.location.origin);
+function toUrl(value: string) {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
   }
+}
+
+function isLocalHostName(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function getBaseUrl() {
+  const fromRuntime =
+    typeof window !== "undefined" && window.location?.origin
+      ? normalizeBaseUrl(window.location.origin)
+      : "";
+
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (fromEnv) {
+    const envUrl = toUrl(fromEnv);
+    const runtimeUrl = fromRuntime ? toUrl(fromRuntime) : null;
+
+    // If env accidentally points to localhost but browser is on a real domain,
+    // prefer the current browser origin to avoid redirecting users to localhost.
+    if (
+      envUrl &&
+      runtimeUrl &&
+      isLocalHostName(envUrl.hostname) &&
+      !isLocalHostName(runtimeUrl.hostname)
+    ) {
+      return fromRuntime;
+    }
+
+    return normalizeBaseUrl(fromEnv);
+  }
+
+  if (fromRuntime) return fromRuntime;
 
   return "";
 }
