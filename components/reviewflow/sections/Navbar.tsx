@@ -257,12 +257,12 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
 
         {variant === "landing" ? (
           <a
-            href="/register"
+            href={isAuthenticated ? "/prompt" : "/register"}
             className="btn-brand-nav"
             data-auth-skip="true"
             style={{ padding: "9px 20px", borderRadius: 50, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: "pointer", border: "none", background: "var(--brand)", color: "white", boxShadow: "0 2px 8px rgba(249,115,22,0.3)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, transition: "all 0.2s" }}
           >
-            Get Started ↗
+            {isAuthenticated ? "Open Prompt ↗" : "Get Started ↗"}
           </a>
         ) : null}
 
