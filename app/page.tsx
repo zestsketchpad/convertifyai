@@ -5,11 +5,12 @@ import Insights from "@/components/Insights";
 import TopProblem from "@/components/TopProblem";
 import Scores from "@/components/Scores";
 import Preview from "@/components/Preview";
+import type { GeneratedPayload, GenerateApiErrorBody } from "@/lib/generated";
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [tone, setTone] = useState("Professional");
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<GeneratedPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,17 +32,19 @@ export default function Home() {
       setData(res.data);
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const responseData = err.response?.data as any;
+        const responseData = err.response?.data as GenerateApiErrorBody | string | undefined;
+        const responseObject =
+          typeof responseData === "string" || !responseData ? undefined : responseData;
         const message =
-          typeof responseData?.error === "string"
-            ? responseData.error
+          typeof responseObject?.error === "string"
+            ? responseObject.error
             : typeof responseData === "string"
               ? responseData
               : err.message;
-        const code = typeof responseData?.code === "string" ? responseData.code : "";
-        const hint = typeof responseData?.hint === "string" ? responseData.hint : "";
+        const code = typeof responseObject?.code === "string" ? responseObject.code : "";
+        const hint = typeof responseObject?.hint === "string" ? responseObject.hint : "";
         const details =
-          typeof responseData?.details === "string" ? responseData.details : "";
+          typeof responseObject?.details === "string" ? responseObject.details : "";
 
         const parts = [
           message,

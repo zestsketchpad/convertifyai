@@ -84,7 +84,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const payload = (await res.json().catch(() => null)) as any;
+    const payload = (await res.json().catch(() => null)) as {
+      choices?: Array<{
+        message?: {
+          content?: unknown;
+        };
+      }>;
+    } | null;
     const content = payload?.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
       return NextResponse.json(
@@ -171,7 +177,11 @@ function isRetryableNetworkError(error: unknown) {
 function getNetworkErrorInfo(error: unknown): { code?: string } {
   if (!error || typeof error !== "object") return {};
 
-  const anyErr = error as any;
+  const anyErr = error as {
+    code?: unknown;
+    name?: unknown;
+    cause?: { code?: unknown };
+  };
   const code =
     (typeof anyErr?.cause?.code === "string" ? anyErr.cause.code : undefined) ||
     (typeof anyErr?.code === "string" ? anyErr.code : undefined);

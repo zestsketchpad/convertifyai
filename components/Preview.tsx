@@ -1,13 +1,15 @@
+import type { GeneratedPayload } from "@/lib/generated";
+
 type Props = {
-  data: any;
+  data: GeneratedPayload | null;
 };
 
 export default function Preview({ data }: Props) {
-  const landing = data?.landing ?? {};
-  const headline = landing.headline ?? "";
-  const subheadline = landing.subheadline ?? "";
-  const benefits: string[] = Array.isArray(landing.benefits) ? landing.benefits : [];
-  const cta = landing.cta ?? "";
+  const landing = data?.landing;
+  const headline = landing?.headline ?? "";
+  const subheadline = landing?.subheadline ?? "";
+  const benefits: string[] = Array.isArray(landing?.benefits) ? landing.benefits : [];
+  const cta = landing?.cta ?? "";
 
   const rawTestimonials: Array<{ name?: unknown; review?: unknown }> = Array.isArray(
     data?.testimonials,
@@ -65,7 +67,7 @@ export default function Preview({ data }: Props) {
                 key={i}
                 className="p-5 bg-white rounded-xl shadow-md hover:shadow-lg transition"
               >
-                <p className="mb-2">"{t.review}"</p>
+                <p className="mb-2">&quot;{t.review}&quot;</p>
                 <p className="text-sm text-gray-500">- {t.name}</p>
               </div>
             ))

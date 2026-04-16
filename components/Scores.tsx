@@ -1,5 +1,7 @@
+import type { GeneratedPayload } from "@/lib/generated";
+
 type Props = {
-  data: any;
+  data: GeneratedPayload | null;
 };
 
 function clampScore(value: unknown, fallback = 50) {
@@ -26,10 +28,9 @@ function Bar({ label, value }: { label: string; value: number }) {
 }
 
 export default function Scores({ data }: Props) {
-  const scores = data?.scores ?? {};
-  const conversion = clampScore(scores.conversion, 50);
-  const clarity = clampScore(scores.clarity, 50);
-  const emotion = clampScore(scores.emotion, 50);
+  const conversion = clampScore(data?.scores?.conversion, 50);
+  const clarity = clampScore(data?.scores?.clarity, 50);
+  const emotion = clampScore(data?.scores?.emotion, 50);
 
   return (
     <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.08)] hover:scale-[1.02] transition duration-300">
