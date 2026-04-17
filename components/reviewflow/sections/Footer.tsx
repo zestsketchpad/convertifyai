@@ -29,7 +29,7 @@ export default function Footer() {
           </div>
         ))}
       </div>
-      <div style={{ maxWidth: 1100, margin: "0 auto", paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-3)" }}>
+      <div className="footer-bottom" style={{ maxWidth: 1100, margin: "0 auto", paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-3)" }}>
         <div>© 2025 Convertify AI. All rights reserved.</div>
         <div>Made with ♥ for businesses everywhere</div>
       </div>

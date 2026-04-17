@@ -56,7 +56,7 @@ export default function Features({ onToast }: { onToast: (msg: string) => void }
           <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.65 }}>Get notified instantly when a negative review lands. Never miss a critical moment again.</div>
         </div>
         <div className="bento-card bento-span-3" style={{ gridColumn: "span 3", background: "linear-gradient(135deg,#0F172A,#1E293B)", border: "1px solid #1E293B", borderRadius: 20, padding: 32, color: "white" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "center" }}>
+          <div className="bento-highlight-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "center" }}>
             <div>
               <div style={{ width: 48, height: 48, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 18, background: "rgba(249,115,22,0.2)" }}>⚡</div>
               <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700, color: "white", marginBottom: 10 }}>One inbox for every review,<br />every platform.</div>

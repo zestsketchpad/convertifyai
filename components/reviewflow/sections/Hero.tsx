@@ -58,7 +58,7 @@ export default function Hero() {
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22C55E" }} />
             <span style={{ fontSize: 12, color: "var(--text-3)", marginLeft: 8 }}>Convertify AI — Dashboard</span>
           </div>
-          <div style={{ padding: 24, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <div className="hero-dashboard-grid" style={{ padding: 24, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
             {[
               { label: "Total Reviews", value: "2,847", color: "var(--indigo)", change: "↑ +12% this month", changeColor: "var(--green)" },
               { label: "Avg. Rating", value: "4.8 ★", color: "var(--amber)", change: "↑ Up from 4.5", changeColor: "var(--green)" },
@@ -75,7 +75,7 @@ export default function Hero() {
                 { initials: "RK", bg: "#EEF2FF", color: "#6366F1", name: "Rahul Krishnan", text: "Absolutely love the product. Fast delivery and great quality!", rating: 5, sentiment: "Positive", sBg: "var(--green-light)", sColor: "#166534" },
                 { initials: "SM", bg: "#FFF7ED", color: "#EA580C", name: "Sneha Murthy", text: "Took longer than expected but support team was helpful.", rating: 4, sentiment: "Neutral", sBg: "var(--amber-light)", sColor: "#92400E" },
               ].map((r) => (
-                <div key={r.name} style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid var(--border)" }}>
+                <div className="hero-review-row" key={r.name} style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid var(--border)" }}>
                   <Avatar initials={r.initials} color={r.bg} textColor={r.color} size={36} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, color: "var(--text)", fontSize: 13 }}>{r.name}</div>

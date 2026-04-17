@@ -7,6 +7,7 @@ import { buildImageIntentKeywords, getImagePlaceholder, getOpenImageSources } fr
 type Props = {
   data: any;
   tone?: string;
+  shareMode?: boolean;
 };
 
 const CheckIcon = () => (
@@ -183,7 +184,7 @@ function hashString(input: string): number {
   return Math.abs(hash);
 }
 
-export default function Preview({ data, tone = "Professional" }: Props) {
+export default function Preview({ data, tone = "Professional", shareMode = false }: Props) {
   const [fullscreen, setFullscreen] = useState(false);
 
   const industry = inferIndustry(data);
@@ -627,6 +628,10 @@ export default function Preview({ data, tone = "Professional" }: Props) {
       )}
     </div>
   );
+
+  if (shareMode) {
+    return <div className="w-full">{PreviewContent}</div>;
+  }
 
   if (fullscreen) {
     return (
