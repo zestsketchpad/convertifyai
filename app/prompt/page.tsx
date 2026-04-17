@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [input, setInput] = useState("");
+  const [inputMode, setInputMode] = useState<"reviews" | "maps">("reviews");
   const [tone, setTone] = useState("Professional");
   const [data, setData] = useState<any>(null);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
@@ -52,7 +53,7 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (!input.trim()) {
-      setError("Paste some reviews first.");
+      setError(inputMode === "maps" ? "Paste a Google Maps link first." : "Paste some reviews first.");
       return;
     }
 
@@ -65,9 +66,32 @@ export default function Home() {
     setShareError(null);
 
     try {
+      let reviewsText = input;
+
+      if (inputMode === "maps") {
+        const mapsRes = await axios.post("/api/maps", {
+          mapsUrl: input,
+        });
+
+        const placeName = typeof mapsRes.data?.place?.name === "string" ? mapsRes.data.place.name : "Google Maps place";
+        const fetchedReviews = Array.isArray(mapsRes.data?.reviews) ? mapsRes.data.reviews : [];
+        const reviewLines = fetchedReviews
+          .map((review: { name?: string; review?: string; rating?: number; time?: string }) => {
+            const author = review.name || "Google User";
+            const text = review.review || "";
+            const rating = typeof review.rating === "number" ? `${review.rating}/5` : "";
+            const time = review.time ? ` (${review.time})` : "";
+            return `${author}${rating ? ` - ${rating}` : ""}${time}: ${text}`;
+          })
+          .filter(Boolean)
+          .join("\n");
+
+        reviewsText = reviewLines || `${placeName} reviews were fetched, but no review text was returned.`;
+      }
+
       // Step 1: Generate insights
       const insightsRes = await axios.post("/api/generate", {
-        reviews: input,
+        reviews: reviewsText,
         tone,
       });
       const insightsData = insightsRes.data;
@@ -75,7 +99,7 @@ export default function Home() {
 
       // Step 2: Get strategic decisions
       const strategyRes = await axios.post("/api/strategy", {
-        reviews: input,
+        reviews: reviewsText,
         tone,
       });
       const strategyData = strategyRes.data;
@@ -89,7 +113,7 @@ export default function Home() {
         ...insightsData,
         _strategy: refinedStrategy,
         _theme: theme,
-        reviewsText: input,
+        reviewsText,
       });
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -223,10 +247,39 @@ export default function Home() {
           Turn user feedback into high-converting landing pages instantly
         </p>
 
+        <div className="mb-4 inline-flex rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => setInputMode("reviews")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              inputMode === "reviews"
+                ? "bg-purple-500 text-white"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            Reviews
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode("maps")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              inputMode === "maps"
+                ? "bg-blue-500 text-white"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            Google Map Link
+          </button>
+        </div>
+
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Paste user reviews here..."
+          placeholder={
+            inputMode === "maps"
+              ? "Paste a Google Maps place link here..."
+              : "Paste user reviews here..."
+          }
           className="w-full max-w-2xl h-40 p-4 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] backdrop-blur-xl mb-4"
         />
 
