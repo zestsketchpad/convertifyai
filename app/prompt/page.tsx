@@ -6,6 +6,7 @@ import Insights from "@/components/Insights";
 import TopProblem from "@/components/TopProblem";
 import Scores from "@/components/Scores";
 import Preview from "@/components/Preview";
+import GeneratedWebsiteInteractivity from "@/components/GeneratedWebsiteInteractivity";
 import { SystemRenderer } from "@/components/SystemRenderer";
 import { getUserDisplayName } from "@/lib/auth-user";
 import { Strategy } from "@/lib/types";
@@ -327,7 +328,9 @@ export default function Home() {
                   <Insights data={data} />
                   <TopProblem data={data} />
                   <Scores data={data} />
-                  <Preview data={data} tone={tone} />
+                  <GeneratedWebsiteInteractivity>
+                    <Preview data={data} tone={tone} />
+                  </GeneratedWebsiteInteractivity>
                 </>
               )}
             </div>
@@ -335,12 +338,14 @@ export default function Home() {
             {/* New system renderer */}
             {useNewSystem && data._strategy && data._theme && (
               <div className="w-full">
-                <SystemRenderer
-                  strategy={data._strategy}
-                  data={data}
-                  theme={data._theme}
-                  showExplanation={true}
-                />
+                <GeneratedWebsiteInteractivity>
+                  <SystemRenderer
+                    strategy={data._strategy}
+                    data={data}
+                    theme={data._theme}
+                    showExplanation={true}
+                  />
+                </GeneratedWebsiteInteractivity>
               </div>
             )}
 

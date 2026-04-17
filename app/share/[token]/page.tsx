@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import GeneratedWebsiteInteractivity from "@/components/GeneratedWebsiteInteractivity";
 import Preview from "@/components/Preview";
 import { SystemRenderer } from "@/components/SystemRenderer";
 
@@ -62,15 +63,21 @@ export default function SharedPage() {
 
       {!loading && !error && data && (
         <>
-          {!useNewSystem && <Preview data={data} tone={tone} shareMode={true} />}
+          {!useNewSystem && (
+            <GeneratedWebsiteInteractivity>
+              <Preview data={data} tone={tone} shareMode={true} />
+            </GeneratedWebsiteInteractivity>
+          )}
 
           {useNewSystem && data?._strategy && data?._theme && (
-            <SystemRenderer
-              strategy={data._strategy}
-              data={data}
-              theme={data._theme}
-              showExplanation={false}
-            />
+            <GeneratedWebsiteInteractivity>
+              <SystemRenderer
+                strategy={data._strategy}
+                data={data}
+                theme={data._theme}
+                showExplanation={false}
+              />
+            </GeneratedWebsiteInteractivity>
           )}
         </>
       )}
