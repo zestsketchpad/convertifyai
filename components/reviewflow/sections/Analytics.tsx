@@ -53,7 +53,7 @@ export default function Analytics({ onToast }: { onToast: (msg: string) => void 
         <div className="analytics-card" style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 20, padding: 28 }}>
           <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Sentiment Breakdown</div>
           <div style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20 }}>Across all platforms this month</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <div className="analytics-sentiment-row" style={{ display: "flex", alignItems: "center", gap: 24 }}>
             <svg width="120" height="120" viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="50" fill="none" stroke="#F0FDF4" strokeWidth="20" />
               <circle cx="60" cy="60" r="50" fill="none" stroke="#22C55E" strokeWidth="20" strokeDasharray="188 126" strokeDashoffset="-31" strokeLinecap="round" />
@@ -92,7 +92,7 @@ export default function Analytics({ onToast }: { onToast: (msg: string) => void 
         <div className="analytics-card" style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 20, padding: 28 }}>
           <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Response Rate</div>
           <div style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20 }}>How quickly you're responding</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+          <div className="analytics-stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
             {stats.map((s) => (
               <div key={s.label} style={{ textAlign: "center", padding: "20px 16px", background: "var(--surface)", borderRadius: "var(--radius-xs)" }}>
                 <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 36, fontWeight: 800, color: s.color }}>{s.val}</div>

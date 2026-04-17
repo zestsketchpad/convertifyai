@@ -87,6 +87,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
       <a
         href={homeHref}
         data-auth-skip="true"
+        className="nav-brand"
         style={{
           display: "flex",
           alignItems: "center",
@@ -136,7 +137,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
             CA
           </span>
         </div>
-        Convertify AI
+        <span className="nav-brand-text">Convertify AI</span>
       </a>
 
       {variant === "landing" ? (
@@ -168,10 +169,11 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="nav-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {isAuthenticated ? (
           <>
             <span
+              className="nav-display-name"
               data-auth-skip="true"
               title={displayName}
               style={{
@@ -208,8 +210,8 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
               <button
                 type="button"
                 data-auth-skip="true"
+                className="btn-ghost-nav nav-secondary-action"
                 onClick={() => router.replace("/")}
-                className="btn-ghost-nav"
                 style={{ padding: "9px 18px", borderRadius: 50, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: "pointer", border: "1.5px solid var(--border)", background: "color-mix(in srgb, var(--white) 65%, transparent)", color: "var(--text-2)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
               >
                 Back to Home
@@ -218,7 +220,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
               <a
                 href="/prompt"
                 data-auth-skip="true"
-                className="btn-ghost-nav"
+                className="btn-ghost-nav nav-secondary-action"
                 style={{ padding: "9px 18px", borderRadius: 50, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: "pointer", border: "1.5px solid var(--border)", background: "color-mix(in srgb, var(--white) 65%, transparent)", color: "var(--text-2)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
               >
                 Open Prompt
@@ -228,8 +230,8 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
             <button
               type="button"
               data-auth-skip="true"
+              className="btn-ghost-nav nav-secondary-action"
               onClick={onLogout}
-              className="btn-ghost-nav"
               style={{ padding: "9px 20px", borderRadius: 50, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: "pointer", border: "1.5px solid var(--border)", background: "color-mix(in srgb, var(--white) 65%, transparent)", color: "var(--text-2)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
               Logout
@@ -239,8 +241,8 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
           <button
             type="button"
             data-auth-skip="true"
+            className="btn-ghost-nav nav-secondary-action"
             onClick={() => router.replace("/")}
-            className="btn-ghost-nav"
             style={{ padding: "9px 18px", borderRadius: 50, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: "pointer", border: "1.5px solid var(--border)", background: "color-mix(in srgb, var(--white) 65%, transparent)", color: "var(--text-2)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             Back to Home
@@ -248,7 +250,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
         ) : (
           <button
             type="button"
-            className="btn-ghost-nav"
+            className="btn-ghost-nav nav-secondary-action"
             style={{ padding: "9px 20px", borderRadius: 50, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: "pointer", border: "1.5px solid var(--border)", background: "color-mix(in srgb, var(--white) 65%, transparent)", color: "var(--text-2)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             Sign In

@@ -227,14 +227,37 @@ body {
   .reviews-layout { grid-template-columns: 1fr !important; }
   .reviews-sidebar { position: static !important; }
   .analytics-grid { grid-template-columns: 1fr !important; }
+  .analytics-sentiment-row { flex-direction: column !important; align-items: flex-start !important; }
   .pricing-grid { grid-template-columns: 1fr !important; }
   .testimonials-grid { grid-template-columns: 1fr !important; }
   .form-row { grid-template-columns: 1fr !important; }
   .footer-grid { grid-template-columns: 1fr 1fr !important; }
+  .footer-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
   .logos-strip { gap: 24px !important; flex-wrap: wrap !important; }
   .hero-section { padding: 100px 20px 60px !important; }
   .section-pad { padding: 70px 20px !important; }
+  .hero-dashboard-grid { grid-template-columns: 1fr !important; }
+  .hero-review-row { align-items: flex-start !important; }
+  .bento-highlight-grid { grid-template-columns: 1fr !important; }
+  .analytics-stats-grid { grid-template-columns: 1fr !important; }
   .float-card-1, .float-card-2, .float-card-3 { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  .rf-navbar {
+    height: 56px !important;
+    padding: 0 8px !important;
+    width: calc(100% - 12px) !important;
+  }
+  .nav-brand { gap: 8px !important; }
+  .nav-brand-text { display: none !important; }
+  .nav-actions { gap: 6px !important; }
+  .nav-display-name,
+  .nav-secondary-action { display: none !important; }
+  .btn-brand-nav { padding: 8px 14px !important; font-size: 12px !important; }
+  .hero-section { padding: 92px 16px 54px !important; }
+  .section-pad { padding: 56px 16px !important; }
+  .footer-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
 }
 `;
 

@@ -21,6 +21,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [useNewSystem, setUseNewSystem] = useState(true);
   const [displayName, setDisplayName] = useState("Account");
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareExpiresAt, setShareExpiresAt] = useState("");
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -55,6 +59,9 @@ export default function Home() {
     setError(null);
     setData(null);
     setStrategy(null);
+    setShareUrl("");
+    setShareExpiresAt("");
+    setShareError(null);
 
     try {
       // Step 1: Generate insights
@@ -110,6 +117,58 @@ export default function Home() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateShareLink = async () => {
+    if (!data) {
+      setShareError("Generate a page first, then create a share link.");
+      return;
+    }
+
+    setShareLoading(true);
+    setShareError(null);
+
+    try {
+      const response = await axios.post("/api/share/create", {
+        data,
+        tone,
+        useNewSystem,
+      });
+
+      const nextUrl = typeof response.data?.shareUrl === "string" ? response.data.shareUrl : "";
+      const expiresAt =
+        typeof response.data?.expiresAt === "string" ? response.data.expiresAt : "";
+
+      if (!nextUrl) {
+        throw new Error("Share link was not generated.");
+      }
+
+      setShareUrl(nextUrl);
+      setShareExpiresAt(expiresAt);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message =
+          typeof err.response?.data?.error === "string"
+            ? err.response.data.error
+            : err.message;
+        setShareError(message || "Failed to create share link.");
+      } else {
+        setShareError("Failed to create share link.");
+      }
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareError("Link copied to clipboard.");
+    } catch {
+      setShareError("Copy failed. Please copy the link manually.");
     }
   };
 
@@ -170,7 +229,7 @@ export default function Home() {
           className="w-full max-w-2xl h-40 p-4 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] backdrop-blur-xl mb-4"
         />
 
-        <div className="flex gap-3 mb-4">
+        <div className="flex flex-wrap justify-center gap-3 mb-4">
           {["Professional", "Casual", "Luxury"].map((t) => (
             <button
               key={t}
@@ -191,6 +250,52 @@ export default function Home() {
         >
           {loading ? "Analyzing..." : "Generate Insights"}
         </button>
+
+        <div className="mt-4 w-full max-w-2xl rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCreateShareLink}
+              disabled={shareLoading || !data}
+              className="px-4 py-2 rounded-lg font-medium bg-white/10 border border-white/20 hover:bg-white/15 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {shareLoading ? "Creating 24h link..." : "Create 24h Share Link"}
+            </button>
+
+            {shareUrl && (
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className="px-4 py-2 rounded-lg font-medium bg-white/10 border border-white/20 hover:bg-white/15 transition"
+              >
+                Copy Link
+              </button>
+            )}
+          </div>
+
+          {shareUrl && (
+            <div className="mt-3 space-y-1">
+              <p className="text-xs text-gray-400">Share link (valid for 24 hours)</p>
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm break-all text-blue-300 hover:text-blue-200 underline"
+              >
+                {shareUrl}
+              </a>
+              {shareExpiresAt && (
+                <p className="text-xs text-gray-400">
+                  Expires: {new Date(shareExpiresAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
+
+          {shareError && (
+            <p className="mt-3 text-sm text-gray-200">{shareError}</p>
+          )}
+        </div>
 
         {loading && (
           <div className="mt-6 flex items-center gap-2 text-purple-400">
